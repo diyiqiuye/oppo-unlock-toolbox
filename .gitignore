@@ -1,0 +1,22 @@
+# 构建产物
+dist/
+dist-cs/
+**/bin/
+**/obj/
+
+# 本机运行数据
+logs/
+backup/
+downloads/
+resources/
+state.json
+
+# 临时文件
+*.tmp
+*.log
+*.user
+.vs/
+
+# 本地留存，不随仓库发布
+docs/
+csharp/README.md

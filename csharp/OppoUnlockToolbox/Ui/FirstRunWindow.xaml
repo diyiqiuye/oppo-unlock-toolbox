@@ -1,0 +1,65 @@
+<Window x:Class="OppoUnlockToolbox.Ui.FirstRunWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:OppoUnlockToolbox.Ui"
+        Title="开始之前 · 使用须知" Width="560" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Base}"
+        FontFamily="{StaticResource UiFont}"
+        TextElement.Foreground="{StaticResource Ink}"
+        UseLayoutRounding="True"
+        Icon="pack://application:,,,/Assets/app.ico">
+
+    <Border Background="{StaticResource Surface}" CornerRadius="{StaticResource R.Card}"
+            BorderBrush="{StaticResource Border}" BorderThickness="1" Margin="16">
+        <StackPanel Margin="24,22,24,20">
+            <StackPanel Orientation="Horizontal">
+                <ui:IconBox Key="alert" Size="20" Foreground="{StaticResource Danger}"
+                            VerticalAlignment="Center"/>
+                <TextBlock Text="开始之前 · 使用须知" FontSize="16" FontWeight="SemiBold"
+                           Margin="10,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <Border Background="{StaticResource DangerSoft}" CornerRadius="{StaticResource R.Tile}"
+                    Padding="12,10" Margin="0,14,0,0">
+                <StackPanel>
+                    <TextBlock Text="警告" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource Danger}"/>
+                    <TextBlock Margin="0,6,0,0" FontSize="12.5" TextWrapping="Wrap"
+                               Foreground="{StaticResource Ink2}"
+                               Text="解锁会让手机清空全部数据，先把照片、微信、文件自己导出备份。临时 root 会直接改写内核内存，参数不对或运气不好会重启手机 —— 仅限你自己的设备，风险自负。"/>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="怎么用" FontSize="13.5" FontWeight="SemiBold" Margin="0,16,0,0"/>
+
+            <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="1" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource AccentText}" Margin="0,2,10,0"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" FontSize="13" TextWrapping="Wrap"
+                           Foreground="{StaticResource Ink2}"
+                           Text="临时 Root 只支持 ColorOS 14 系统的机器；先用上面的「资源下载」把 bundle 和 KernelSU 管理器准备好。"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="2" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource AccentText}" Margin="0,10,10,0"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" FontSize="13" TextWrapping="Wrap"
+                           Foreground="{StaticResource Ink2}" Margin="0,10,0,0"
+                           Text="按左边 1 → 7 的顺序往下做就行：一步跑完再跑下一步，中间不要跳步。"/>
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                <Button x:Name="ConfirmBtn" Style="{StaticResource BtnPrimary}" MinWidth="120" Height="32"
+                        IsEnabled="False" Click="OnConfirmClick" Content="确定（5s）"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

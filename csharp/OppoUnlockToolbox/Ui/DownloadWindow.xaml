@@ -1,0 +1,50 @@
+<Window x:Class="OppoUnlockToolbox.Ui.DownloadWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:OppoUnlockToolbox.Ui"
+        Title="资源下载" Width="600" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Base}"
+        FontFamily="{StaticResource UiFont}"
+        TextElement.Foreground="{StaticResource Ink}"
+        UseLayoutRounding="True"
+        Icon="pack://application:,,,/Assets/app.ico">
+
+    <Border Background="{StaticResource Surface}" CornerRadius="{StaticResource R.Card}"
+            BorderBrush="{StaticResource Border}" BorderThickness="1" Margin="16">
+        <StackPanel Margin="24,22,24,20">
+            <TextBlock Text="下载资源" FontSize="16" FontWeight="SemiBold"/>
+            <TextBlock Text="下载完成会自动识别文件并填进对应阶段的参数，不用再手动选择。"
+                       FontSize="12" Foreground="{StaticResource Ink3}" Margin="0,4,0,0"
+                       TextWrapping="Wrap"/>
+
+            <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="保存到" FontSize="12.5" Foreground="{StaticResource Ink2}"
+                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock x:Name="TargetDirText" Grid.Column="1" FontSize="12.5"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <Button x:Name="BrowseBtn" Grid.Column="2" Style="{StaticResource BtnDefault}"
+                        Height="30" Margin="10,0,0,0" Click="OnBrowseClick">
+                    <TextBlock Text="更换目录" FontSize="12"/>
+                </Button>
+                <Button x:Name="EditConfigBtn" Grid.Column="3" Style="{StaticResource BtnDefault}"
+                        Height="30" Margin="8,0,0,0" Click="OnEditConfigClick">
+                    <TextBlock Text="编辑直链" FontSize="12"/>
+                </Button>
+            </Grid>
+
+            <StackPanel x:Name="ItemsHost" Margin="0,14,0,0"/>
+
+            <Button Style="{StaticResource BtnPrimary}" HorizontalAlignment="Right"
+                    Margin="0,18,0,0" MinWidth="96" Click="OnCloseClick">
+                <TextBlock Text="关闭"/>
+            </Button>
+        </StackPanel>
+    </Border>
+</Window>
