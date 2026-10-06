@@ -1200,6 +1200,23 @@ public static partial class Workflow
         };
     }
 
+    private static Step S7VioletGate() => new("检查紫罗兰工具箱是否在后台运行", ctx =>
+    {
+        ctx.Status("检查紫罗兰工具箱（VioletToolBox）");
+        var running = VioletGuard.FindRunning();
+        if (running is not null)
+        {
+            ctx.Log($"检测到紫罗兰工具箱（{running}）正在后台运行，继续解锁。", "ok");
+            return "紫罗兰已就绪";
+        }
+        throw new StepFailException(
+            "没有检测到紫罗兰工具箱（VioletToolBox）在后台运行，已停止解锁。\n" +
+            "解锁后手机的 USB 调试会自动关闭、触控和 WiFi 也会失灵，必须靠紫罗兰工具箱的投屏（scrcpy）来操作手机；" +
+            "没有它挂着连接，手机重启后将无法再连接操作。\n" +
+            "请先打开紫罗兰工具箱、连接好手机并保持在后台运行，再重跑本阶段。\n" +
+            "下载：https://github.com/Smart-Paocai/VioletToolBox/releases");
+    });
+
     private static Step S7Reboot() => new("重启进工厂 fastboot", ctx =>
     {
         if (adb.DeviceState() == "fastboot")
@@ -1516,12 +1533,13 @@ public static partial class Workflow
             needsRoot: true),
         new("fastboot", 5, "fastboot 解锁",
             danger: "锁一旦解开，手机数据会被全部清除，先确认要留的东西都备份好了。\n" +
+                    "前置要求：必须先在电脑上打开紫罗兰工具箱（VioletToolBox）、连接手机并保持在后台运行，否则本阶段会直接停止。\n" +
                     "手机进入工厂 fastboot 菜单后：选中 UNLOCK THE BOOTLOADER → 再按确认键（各机型按键不同，以屏幕提示为准）。\n" +
                     "注意 1：写入解锁文件之后，手机的触控和 WiFi 会失灵，这是正常现象，做完『还原原分区』就恢复正常。\n" +
-                    "注意 2：这段时间要操作手机，建议用紫罗兰工具箱（VioletBox）投屏操作。\n" +
+                    "注意 2：这段时间要操作手机，建议用紫罗兰工具箱（VioletToolBox）投屏操作。\n" +
                     "注意 3：如果解锁指令写不进去，先开机进开发者选项打开『OEM 解锁』再重跑本阶段。",
             preview: PreviewUnlock,
-            build: _ => new List<Step> { S7Reboot(), S7Ack(), S7Unlock(), S7Wait() }),
+            build: _ => new List<Step> { S7VioletGate(), S7Reboot(), S7Ack(), S7Unlock(), S7Wait() }),
         new("verify", 6, "验证解锁状态",
             preview: PreviewVerify,
             build: _ => new List<Step> { S8Check(), S8Record() }),

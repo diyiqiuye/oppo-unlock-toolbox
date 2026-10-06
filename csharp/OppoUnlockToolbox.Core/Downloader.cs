@@ -249,7 +249,7 @@ public static class Downloader
 
     static Downloader()
     {
-        Http.DefaultRequestHeaders.UserAgent.ParseAdd("OPPOUnlockToolbox/0.1.1");
+        Http.DefaultRequestHeaders.UserAgent.ParseAdd("OPPOUnlockToolbox/0.1.2");
     }
 
     public static List<string> BuildCandidates(ResourceItem item)

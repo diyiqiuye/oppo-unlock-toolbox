@@ -192,6 +192,7 @@ Environment.SetEnvironmentVariable("MOCK_DEVICE_PY", mockScript);
 AppConfig.TestAppDir = tmp;
 AppConfig.SetToolOverride("adb", adbShim);
 AppConfig.SetToolOverride("fastboot", fbShim);
+VioletGuard.OverrideForTests = true;
 Directory.CreateDirectory(AppConfig.BackupDir());
 Directory.CreateDirectory(AppConfig.LogDir());
 
@@ -319,6 +320,12 @@ var (ok4c, summary4c, _) = RunStage("restore", new Dictionary<string, object?>
 Check(!ok4c && summary4c.Contains("解锁镜像"), "用解锁镜像还原被拦下", summary4c);
 Check(Md5(File.ReadAllBytes(Path.Combine(TmpRoot, "dev", "block", "by-name", "abl_b"))) != originals["abl_b"],
     "被拦下后分区没有被改写");
+
+Console.WriteLine("\n== 5 前置：紫罗兰工具箱没开必须被拦下 ==");
+VioletGuard.OverrideForTests = false;
+var (ok5g, summary5g, _) = RunStage("fastboot", new Dictionary<string, object?>());
+Check(!ok5g && summary5g.Contains("紫罗兰"), "缺少紫罗兰工具箱时拦下解锁", summary5g);
+VioletGuard.OverrideForTests = true;
 
 Console.WriteLine("\n== 5 fastboot 解锁 ==");
 var (ok5, summary5, _) = RunStage("fastboot", new Dictionary<string, object?> { ["ack"] = true });
