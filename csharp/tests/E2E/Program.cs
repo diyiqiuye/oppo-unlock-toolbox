@@ -321,6 +321,15 @@ Check(!ok4c && summary4c.Contains("解锁镜像"), "用解锁镜像还原被拦�
 Check(Md5(File.ReadAllBytes(Path.Combine(TmpRoot, "dev", "block", "by-name", "abl_b"))) != originals["abl_b"],
     "被拦下后分区没有被改写");
 
+Console.WriteLine("\n== 5 前置：紫罗兰工具箱进程识别 ==");
+Check(VioletGuard.IsViolet("SmartTool"), "识别 Release 释放的真实进程名 SmartTool");
+Check(VioletGuard.IsViolet("VioletToolBox"), "识别 VioletToolBox 进程名");
+Check(VioletGuard.IsViolet("VioletBox"), "识别 VioletBox 进程名");
+Check(VioletGuard.IsViolet("紫罗兰工具箱"), "识别中文进程名");
+Check(VioletGuard.IsViolet("MyVioletTool"), "名字里带 violet 也能识别");
+Check(!VioletGuard.IsViolet("msedge"), "浏览器进程不误报");
+Check(!VioletGuard.IsViolet(""), "空信息不误报");
+
 Console.WriteLine("\n== 5 前置：紫罗兰工具箱没开必须被拦下 ==");
 VioletGuard.OverrideForTests = false;
 var (ok5g, summary5g, _) = RunStage("fastboot", new Dictionary<string, object?>());
