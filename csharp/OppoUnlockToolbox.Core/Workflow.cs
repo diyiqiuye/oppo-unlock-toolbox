@@ -822,8 +822,8 @@ public static partial class Workflow
     // ── DFRoot（CVE-2026-43284）临时 root 通道 ──
     //
     // DFRoot 只能以「装在手机上的 App」形式跑：它得用 Android 框架的 IpSecManager 建 IPsec ESP
-    // transform，再把参数交给 libdfroot.so。所以工具箱只负责把 KernelSU 管理器和 DFRoot 装到
-    // 手机上、打开它，剩下那一下由用户在 DFRoot 界面里自己点（用上游官方 apk，不做改动）。
+    // transform，再把参数交给 libdfroot.so。所以工具箱只负责装它、打开它，然后等 uid=0 ——
+    // 中间那一下「Launch Root」由用户在手机上点。
 
     private static bool IsDfroot(IReadOnlyDictionary<string, object?>? vars) =>
         vars is not null && vars.TryGetValue("method", out var m) && m?.ToString() == "dfroot";
@@ -831,119 +831,48 @@ public static partial class Workflow
     private static string TemprootMethod(Dictionary<string, object?>? parameters) =>
         IsDfroot(parameters) ? "dfroot" : "gpu";
 
-    private static Step D1Device() => new("检查设备是否在线", ctx =>
+    private static Step D1Launch() => new("在手机上打开 DFRoot", ctx =>
     {
-        var model = DeviceOnline(ctx);
-        ctx.Extras["kernel"] = adb.KernelRaw();
-        ctx.Extras["kver"] = adb.KernelVersion();
-        ctx.Log($"内核：{(ctx.Extras["kver"]?.ToString() ?? "?")}", "info");
-        return model;
-    });
-
-    private static Step D2Manager() => new("确认手机上有 SU 管理器", ctx =>
-    {
-        var candidates = InstalledPackages()
-            .Where(p => AppConfig.SuManagerHints.Any(h => p.Contains(h, StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-        if (candidates.Count == 0)
-        {
-            throw new StepFailException(
-                "手机上没找到 SU 管理器。先在『资源下载』里下载并安装 KernelSU 管理器，再重跑本阶段。");
-        }
-        ctx.Log($"SU 管理器：{string.Join("、", candidates)}", "ok");
-        return string.Join("、", candidates);
-    });
-
-    private static Step D3App() => new("确认手机上装了 DFRoot", ctx =>
-    {
-        if (InstalledPackages().Contains(AppConfig.DfrootPackage))
-        {
-            ctx.Log("DFRoot 已安装。", "ok");
-            return "已安装";
-        }
-        var apk = AppConfig.FindDfrootApk();
-        if (apk is null)
+        DeviceOnline(ctx);
+        if (!InstalledPackages().Contains(AppConfig.DfrootPackage))
         {
             throw new StepFailException(
                 "手机上还没装 DFRoot。先在『资源下载』里下载并安装 DFRoot，再重跑本阶段。");
         }
-        ctx.Log($"apk：{apk}", "note");
-        var res = ctx.Run(adb.AdbArgv("install", "-r", apk), label: "adb install",
-            timeoutMs: 300000, allowFail: true);
-        if (!res.Ok && res.Out.Contains("UPDATE_INCOMPATIBLE", StringComparison.OrdinalIgnoreCase))
-        {
-            ctx.Log("手机上已有一个签名不同的 df.root，先卸掉再装。", "warn");
-            ctx.Run(adb.AdbArgv("uninstall", AppConfig.DfrootPackage), label: "adb uninstall",
-                timeoutMs: 120000, allowFail: true);
-            res = ctx.Run(adb.AdbArgv("install", "-r", apk), label: "adb install",
-                timeoutMs: 300000, allowFail: true);
-        }
-        if (!res.Ok && !res.Out.Contains("Success", StringComparison.Ordinal))
-            throw new StepFailException($"安装 DFRoot 失败：{res.Out.Trim()}");
-        return "已安装";
-    });
-
-    private static Step D4Launch() => new("打开 DFRoot，等你在手机上点 Launch Root", ctx =>
-    {
-        ctx.Shell(adb, "logcat -c", timeoutMs: 30000, allowFail: true, stream: false);
         var res = ctx.Run(adb.AdbArgv("shell", "am", "start", "-n", AppConfig.DfrootComponent),
             label: "am start", timeoutMs: 60000, allowFail: true);
         if (!res.Ok || res.Out.Contains("Error", StringComparison.OrdinalIgnoreCase))
             throw new StepFailException($"打开 DFRoot 失败：{res.Out.Trim()}");
-        ctx.Log("手机上已打开 DFRoot：选中你的 SU 管理器 → 点 Launch Root。", "note");
         return "已打开";
     });
 
-    private static Step D5WaitRoot() => new("等待 root 生效（最多 5 分钟）", ctx =>
+    private static Step D2WaitRoot() => new("等待 root 生效（su -c id 返回 uid=0）", ctx =>
     {
-        ctx.Status("等待 DFRoot / uid=0");
+        ctx.Status("等待 uid=0");
         var deadline = DateTime.UtcNow.AddSeconds(300);
-        var marker = "";
         while (DateTime.UtcNow < deadline)
         {
             ctx.CheckCancel();
-
-            var log = adb.ShellText($"logcat -d -s {AppConfig.DfrootLogTag}:I", timeoutMs: 30000);
-            if (log.Contains(AppConfig.DfrootOkMarker, StringComparison.Ordinal))
-            {
-                marker = AppConfig.DfrootOkMarker;
-                break;
-            }
-            var failure = AppConfig.DfrootFailMarkers.FirstOrDefault(m => log.Contains(m, StringComparison.Ordinal));
-            if (failure is not null)
-            {
-                DumpDfrootLog(ctx, log);
-                throw new StepFailException($"DFRoot 报错：{failure}。内核太新、或厂商回填了补丁，这条路就走不通。");
-            }
-
             var uid = adb.ShellText("su -c id", timeoutMs: 20000);
             if (uid.StartsWith("uid=0", StringComparison.Ordinal))
             {
-                marker = "uid=0";
-                break;
+                ctx.Extras["root"] = true;
+                ctx.Log($"ROOT OK（{uid}）—— 临时 root 已生效。重启手机后失效，需要重跑本阶段。", "ok");
+                return "uid=0";
             }
             Thread.Sleep(2000);
         }
-
-        if (marker.Length == 0)
-        {
-            DumpDfrootLog(ctx, adb.ShellText($"logcat -d -s {AppConfig.DfrootLogTag}:I", timeoutMs: 30000));
-            throw new StepFailException("等不到 root 生效（5 分钟超时）。看上面的 dfroot 日志；" +
-                                        "还没点 Launch Root，或者内核不在 DirtyFrag 的适用范围。");
-        }
-
-        ctx.Extras["root"] = true;
-        ctx.Log($"ROOT OK（{marker}）—— 临时 root 已生效。重启手机后失效，需要重跑本阶段。", "ok");
-        return marker;
+        DumpDfrootLog(ctx, adb.ShellText($"logcat -d -s {AppConfig.DfrootLogTag}:I", timeoutMs: 30000));
+        throw new StepFailException("等不到 uid=0（5 分钟超时）。看上面的 dfroot 日志。");
     });
 
-    private static Step D6Record() => new("写入账本", ctx =>
+    private static Step D3Record() => new("写入账本", ctx =>
     {
         StateStore.SetDevice(new Dictionary<string, object?>
         {
             ["model"] = adb.Prop("ro.product.model"),
-            ["kernel"] = (ctx.Extras.TryGetValue("kernel", out var k) ? k?.ToString() : null) ?? adb.KernelRaw(),
-            ["kver"] = ctx.Extras.TryGetValue("kver", out var kv) ? kv?.ToString() ?? "" : "",
+            ["kernel"] = adb.KernelRaw(),
+            ["kver"] = adb.KernelVersion(),
             ["slot"] = adb.ActiveSlot(),
             ["serial"] = DeviceSerial(),
             ["root"] = true,
@@ -976,11 +905,9 @@ public static partial class Workflow
             return PreviewTemproot(parameters);
         return new[]
         {
-            "# 1) 确认设备在线：adb get-state",
-            "# 2) 确认装有 SU 管理器：adb shell pm list packages -3",
-            "# 3) 确认装有 DFRoot：adb shell pm list packages df.root",
-            "# 4) 打开 DFRoot：adb shell am start -n df.root/.MainActivity",
-            "# 5) 在手机上点 Launch Root，然后等：adb shell \"su -c id\" 返回 uid=0",
+            "# 1) 打开 DFRoot：adb shell am start -n df.root/.MainActivity",
+            "# 2) 在手机上点 Launch Root",
+            "# 3) 等 root：adb shell \"su -c id\" 返回 uid=0",
         };
     }
     private static string[] PreviewTemproot(Dictionary<string, object?>? parameters)
@@ -1655,6 +1582,8 @@ public static partial class Workflow
                         ("gpu", "GPU · CVE-2025-21479（c14系统）"),
                         ("dfroot", "DFRoot · CVE-2026-43284（c16系统）"),
                     }),
+                new("dfroot_hint", "在手机上点 Launch Root", "note",
+                    when: vars => IsDfroot(vars)),
                 new("bundle", "bundle 目录", "dir",
                     "解压后的 Release bundle；本机文件名可任意（后缀 / 副本 / 版本号 / 空格都行）。本机不需要 Git Bash —— 一键 sh 的逻辑已经内置。",
                     when: vars => !IsDfroot(vars)),
@@ -1677,7 +1606,7 @@ public static partial class Workflow
             danger: "exploit 直接写内核内存，失败会触发重启；请保持屏幕常亮、别拔线。",
             preview: PreviewTemproot2,
             build: p => TemprootMethod(p) == "dfroot"
-                ? new List<Step> { D1Device(), D2Manager(), D3App(), D4Launch(), D5WaitRoot(), D6Record() }
+                ? new List<Step> { D1Launch(), D2WaitRoot(), D3Record() }
                 : new List<Step> { S3Kernel(), S3Bundle(), S3Push(), S3Profile(), S3Exploit(), S3Verify(), S3Record() },
             needsRoot: false),
         new("push", 2, "推送解锁文件",

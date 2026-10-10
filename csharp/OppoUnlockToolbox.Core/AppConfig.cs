@@ -78,26 +78,6 @@ public static class AppConfig
     public const string DfrootComponent = "df.root/.MainActivity";
     public const string DfrootLogTag = "dfroot";
 
-    /// <summary>logcat 里出现这行说明 SU 守护进程起来了，也就是拿到 root 了。</summary>
-    public const string DfrootOkMarker = "ksud start: SUCCESS";
-
-    /// <summary>包名里带这些片段的，当成可能的 SU 管理器；DFRoot 需要它自带 libksud.so。</summary>
-    public static readonly string[] SuManagerHints =
-    {
-        "kernelsu", "ksunext", "kowsu", "sukisu",
-    };
-
-    /// <summary>DFRoot 日志里出现这些行就说明这条路走不通，不用再等。</summary>
-    public static readonly string[] DfrootFailMarkers =
-    {
-        "no SU manager selected",
-        "is no longer installed",
-        "libksud.so not found",
-        "patch: ERROR",
-        "timeout: ERROR",
-        "ksud start: ERROR",
-    };
-
     public static readonly string[] BundleBins = { "exploit_guard", "ksud", "su0" };
 
     public static readonly IReadOnlyDictionary<string, string[]> BundleAliases =
@@ -155,32 +135,6 @@ public static class AppConfig
                 var candidate = Path.Combine(dir, fileName);
                 if (File.Exists(candidate))
                     return candidate;
-            }
-            catch
-            {
-
-            }
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// 在 payload 目录（resources/ downloads/）里找 DFRoot 的官方 apk；找不到返回 null，
-    /// 这时让用户自己去「资源下载」装。
-    /// </summary>
-    public static string? FindDfrootApk()
-    {
-        foreach (var dir in PayloadDirs())
-        {
-            try
-            {
-                if (!Directory.Exists(dir))
-                    continue;
-                var hit = Directory.EnumerateFiles(dir, "*dfroot*.apk")
-                    .OrderByDescending(File.GetLastWriteTimeUtc)
-                    .FirstOrDefault();
-                if (hit != null)
-                    return hit;
             }
             catch
             {

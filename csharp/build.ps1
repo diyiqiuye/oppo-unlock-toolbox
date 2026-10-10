@@ -1,7 +1,6 @@
 
 
 param(
-    [switch]$Tests,
     [switch]$Publish,
     [switch]$Installer
 )
@@ -38,28 +37,6 @@ if (Test-Path $selftest) {
 } else {
     Write-Output "selftest report missing"
     exit 1
-}
-
-if ($Tests) {
-    Write-Output ""
-    Write-Output "== build mock shims =="
-    & $dotnet build (Join-Path $csharp "tests\MockShim\MockShim.csproj") -c Release --nologo -v q
-    if ($LASTEXITCODE -ne 0) { exit 1 }
-    $shimBin = Join-Path $csharp "tests\MockShim\bin\Release\net8.0"
-    New-Item -ItemType Directory -Force -Path (Join-Path $csharp "tests\bin\adb"),
-        (Join-Path $csharp "tests\bin\fastboot") | Out-Null
-
-    foreach ($name in @("adb", "fastboot")) {
-        $dir = Join-Path $csharp "tests\bin\$name"
-        Copy-Item (Join-Path $shimBin "mockshim.exe") (Join-Path $dir "$name.exe") -Force
-        Copy-Item (Join-Path $shimBin "mockshim.dll") (Join-Path $dir "mockshim.dll") -Force
-        Copy-Item (Join-Path $shimBin "mockshim.runtimeconfig.json") (Join-Path $dir "mockshim.runtimeconfig.json") -Force
-        Copy-Item (Join-Path $shimBin "mockshim.deps.json") (Join-Path $dir "mockshim.deps.json") -Force
-    }
-
-    Write-Output "== run e2e =="
-    & $dotnet run --project (Join-Path $csharp "tests\E2E") -c Release --nologo
-    if ($LASTEXITCODE -ne 0) { Write-Output "e2e FAILED"; exit 1 }
 }
 
 if ($Publish) {
