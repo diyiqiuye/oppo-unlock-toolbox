@@ -12,8 +12,8 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Product>OPPO 解锁工具箱</Product>
     <Company></Company>
-    <Version>0.1.2</Version>
-    <FileVersion>0.1.2</FileVersion>
+    <Version>0.2</Version>
+    <FileVersion>0.2</FileVersion>
     <AssemblyTitle>OPPO 解锁工具箱</AssemblyTitle>
     <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
     <DebugType>none</DebugType>

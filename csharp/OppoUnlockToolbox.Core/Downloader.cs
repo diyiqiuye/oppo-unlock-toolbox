@@ -107,6 +107,20 @@ public static class ResourceCatalog
                             "https://github.moeyy.xyz/{url}",
                         },
                     },
+                    new
+                    {
+                        key = "dfroot-apk",
+                        group = "通用（DFRoot 临时 root）",
+                        name = "DFRoot v4.1（支持最新版系统，下载后自动装进手机）",
+                        url = "https://github.com/diabl0w/DFRoot/releases/download/v4.1/DFRoot_4.1.apk",
+                        unzip = false,
+                        mirrors = new[]
+                        {
+                            "https://ghfast.top/{url}",
+                            "https://gh-proxy.com/{url}",
+                            "https://github.moeyy.xyz/{url}",
+                        },
+                    },
                 },
             };
             File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(template,
@@ -188,6 +202,9 @@ public static class ResourceCatalog
                 true, new[] { "https://gitee.com/diyiqiuye/fx5p-resources/releases/download/v1/fx6p_unlock_images.zip" }),
             ["ksu-apk"] = ("KernelSU 管理器 v3.3.0（下载后自动装进手机）", "通用（KernelSU 管理器）",
                 "https://github.com/tiann/KernelSU/releases/download/v3.3.0/KernelSU_v3.3.0_32601-release.apk",
+                false, Array.Empty<string>()),
+            ["dfroot-apk"] = ("DFRoot v4.1（支持最新版系统，下载后自动装进手机）", "通用（DFRoot 临时 root）",
+                "https://github.com/diabl0w/DFRoot/releases/download/v4.1/DFRoot_4.1.apk",
                 false, Array.Empty<string>()),
         };
 

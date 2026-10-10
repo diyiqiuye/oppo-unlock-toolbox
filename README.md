@@ -5,7 +5,7 @@
 [![Build](https://github.com/diyiqiuye/oppo-unlock-toolbox/actions/workflows/build.yml/badge.svg)](https://github.com/diyiqiuye/oppo-unlock-toolbox/actions/workflows/build.yml)
 [![License: GPL 3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/diyiqiuye/oppo-unlock-toolbox/blob/main/LICENSE)
 [![Telegram Group](https://img.shields.io/badge/Telegram-Group-2CA5E0?style=flat-square&logo=telegram)](https://t.me/Oppounlockbox)
-[![Release](https://img.shields.io/badge/Release-v0.1.2-success.svg?style=flat-square)](https://github.com/diyiqiuye/oppo-unlock-toolbox/releases)
+[![Release](https://img.shields.io/badge/Release-v0.2-success.svg?style=flat-square)](https://github.com/diyiqiuye/oppo-unlock-toolbox/releases)
 
 给 OPPO Find X5 Pro / Find X6 Pro 用的解锁与临时 root 图形化工具箱。
 

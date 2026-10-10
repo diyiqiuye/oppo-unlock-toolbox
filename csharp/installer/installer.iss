@@ -1,7 +1,7 @@
 
 #define MyAppName "OPPO 解锁工具箱"
 #define MyAppNameEn "OPPOUnlockToolbox"
-#define MyAppVersion "0.1.2"
+#define MyAppVersion "0.2"
 #define MyAppPublisher "diyiqiuye"
 #define MyAppExeName "OPPO解锁工具箱.exe"
 #define MyAppUrl "https://github.com/diyiqiuye/fx5p-resources"

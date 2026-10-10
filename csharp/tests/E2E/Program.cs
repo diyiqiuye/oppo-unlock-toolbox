@@ -446,6 +446,25 @@ foreach (var stage in Workflow.Stages)
     }
 }
 
+Console.WriteLine("\n== 阶段 1：两种提权方式 ==");
+{
+    var temproot = Workflow.StageById["temproot"];
+    var gpuParams = new Dictionary<string, object?>();
+    var dfrootParams = new Dictionary<string, object?> { ["method"] = "dfroot" };
+    var gpuSteps = temproot.Build(gpuParams);
+    var dfrootSteps = temproot.Build(dfrootParams);
+    Check(temproot.Fields.Any(f => f.Key == "method"), "阶段 1 有『提权方式』选项");
+    Check(temproot.Preview?.Invoke(gpuParams)?.Length > 0, "GPU 分支有命令预览");
+    Check(temproot.Preview?.Invoke(dfrootParams)?.Length > 0, "DFRoot 分支有命令预览");
+    Check(dfrootSteps.Count >= 3, "DFRoot 分支步骤数合理");
+    Check(!dfrootSteps.Select(s => s.Title).SequenceEqual(gpuSteps.Select(s => s.Title)),
+        "两种方式构建出的步骤不同");
+    var bundleField = temproot.Fields.First(f => f.Key == "bundle");
+    Check(bundleField.When?.Invoke(dfrootParams) == false, "选 DFRoot 时隐藏 bundle 字段");
+    Check(bundleField.When?.Invoke(gpuParams) == true, "选 GPU 时显示 bundle 字段");
+    Check(dfrootSteps.Any(s => s.Title.Contains("DFRoot")), "DFRoot 分支里有启动 DFRoot 的步骤");
+}
+
 Console.WriteLine("\n== 结果 ==");
 Console.WriteLine($"检查项 {checkCount}，失败 {failures.Count}");
 foreach (var name in failures)

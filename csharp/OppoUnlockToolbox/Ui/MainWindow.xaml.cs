@@ -360,7 +360,8 @@ public partial class MainWindow : Window
     {
         ParamsHost.Children.Clear();
         var vars = StageVars(stage.Sid);
-        if (stage.Fields.Length == 0)
+        var visible = stage.Fields.Where(f => f.When is null || f.When(vars)).ToList();
+        if (visible.Count == 0)
         {
             var empty = new TextBlock
             {
@@ -372,9 +373,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        for (var index = 0; index < stage.Fields.Length; index++)
+        for (var index = 0; index < visible.Count; index++)
         {
-            var field = stage.Fields[index];
+            var field = visible[index];
             var label = new TextBlock
             {
                 Text = field.Label,
@@ -414,7 +415,12 @@ public partial class MainWindow : Window
                             Margin = new Thickness(0, 0, 14, 4),
                         };
                         radio.IsChecked = string.Equals(vars[field.Key]?.ToString(), value, StringComparison.Ordinal);
-                        radio.Checked += (_, _) => vars[field.Key] = value;
+                        radio.Checked += (_, _) =>
+                        {
+                            vars[field.Key] = value;
+                            if (stage.Fields.Any(f => f.When is not null))
+                                RenderFields(stage);
+                        };
                         panel.Children.Add(radio);
                     }
                     control.Children.Add(panel);
@@ -1093,7 +1099,9 @@ public partial class MainWindow : Window
     public (string Summary, string Error) ApplyAutoFill(string resourceKey, string resultPath, bool unzip)
     {
         if (resourceKey.Contains("ksu"))
-            return InstallKsuApk(resultPath);
+            return InstallApk(resultPath, "KernelSU 管理器");
+        if (resourceKey.Contains("dfroot"))
+            return InstallApk(resultPath, "DFRoot");
 
         var analysis = ResourceFill.Analyze(resourceKey, resultPath, unzip);
         var affectedStages = new List<string>();
@@ -1140,7 +1148,7 @@ public partial class MainWindow : Window
         return (summary, fillError);
     }
 
-    public (string Summary, string Error) InstallKsuApk(string apkPath)
+    public (string Summary, string Error) InstallApk(string apkPath, string what)
     {
         if (!File.Exists(apkPath))
             return ("", "apk 文件不存在：" + apkPath);
@@ -1161,8 +1169,8 @@ public partial class MainWindow : Window
         var tail = res.Tail(2);
         if (res.Ok || tail.Contains("Success"))
         {
-            AppendLog("ok", "KernelSU 管理器已安装到手机。");
-            return ("已安装到手机", "");
+            AppendLog("ok", $"{what} 已安装到手机。");
+            return ($"已安装到手机", "");
         }
         AppendLog("err", $"安装失败：{tail}");
         return ("", $"安装失败：{tail}");
