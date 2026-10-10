@@ -376,6 +376,18 @@ public partial class MainWindow : Window
         for (var index = 0; index < visible.Count; index++)
         {
             var field = visible[index];
+            if (field.Kind == "note")
+            {
+                ParamsHost.Children.Add(new TextBlock
+                {
+                    Text = field.Label,
+                    FontSize = 12.5,
+                    TextWrapping = TextWrapping.Wrap,
+                    Foreground = TryBrush("LvlWarn"),
+                    Margin = new Thickness(0, 2, 0, 8),
+                });
+                continue;
+            }
             var label = new TextBlock
             {
                 Text = field.Label,
@@ -527,9 +539,9 @@ public partial class MainWindow : Window
             };
             if (field.Hint.Length > 0)
                 rowBorder.ToolTip = field.Hint;
-            if (index < stage.Fields.Length - 1)
+            if (index < visible.Count - 1)
                 rowBorder.BorderBrush = TryBrush("Line");
-            rowBorder.BorderThickness = new Thickness(0, 0, 0, index < stage.Fields.Length - 1 ? 1 : 0);
+            rowBorder.BorderThickness = new Thickness(0, 0, 0, index < visible.Count - 1 ? 1 : 0);
             ParamsHost.Children.Add(rowBorder);
         }
     }

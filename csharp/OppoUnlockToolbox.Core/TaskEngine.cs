@@ -174,6 +174,16 @@ public sealed class Ctx
         {
             var message = res.Error.Length > 0 ? res.Error : $"root 命令退出码 {res.Code}";
             Log(message, "warn");
+            if (!stream && res.Error.Length == 0)
+            {
+                // stream: false 时回显被收走了却没打出来，失败只剩一个退出码 —— 补上尾巴
+                lock (collected)
+                {
+                    var tail = collected.Select(l => l.Trim()).Where(l => l.Length > 0).TakeLast(6).ToList();
+                    if (tail.Count > 0)
+                        Log("  命令回显：" + string.Join(" ｜ ", tail), "warn");
+                }
+            }
             if (!allowFail)
                 throw new StepFailException(message);
         }

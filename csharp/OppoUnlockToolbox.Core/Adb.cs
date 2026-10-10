@@ -217,7 +217,7 @@ public sealed partial class Adb
                 return new RunResult(new[] { "<root shell>" }, -1,
                     error: $"root 命令中不允许出现单引号：{cmd}");
             }
-            remote = $"echo '{cmd}' | {AppConfig.Ksud} debug su";
+            remote = RootRemote(cmd);
         }
         else
         {
@@ -233,6 +233,16 @@ public sealed partial class Adb
             res.Error = $"远端命令退出码 {res.Code}";
         return res;
     }
+
+    /// <summary>
+    /// 取 root 的远端命令：按顺序找能用的 ksud（工具箱推的 /data/local/tmp/ksud，DFRoot 走过之后
+    /// KernelSU 自己装的 /data/adb/ksud），找到哪个就用哪个 —— ksud 直接过内核模块，不经过 SU 管理器
+    /// 的授权策略，不会卡在等确认上。都找不到才退回设备自带的 su，而且套 8 秒 timeout 兜底。
+    /// </summary>
+    public static string RootRemote(string cmd) =>
+        $"for K in {AppConfig.Ksud} {AppConfig.KsudInstalled}; do " +
+        $"if [ -x $K ]; then echo '{cmd}' | $K debug su; exit $?; fi; done; " +
+        $"timeout 8 su -c '{cmd}'";
 
     public string ShellText(string cmd, bool root = false, int timeoutMs = 60000,
         CancellationToken cancel = default)

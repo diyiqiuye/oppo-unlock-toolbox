@@ -1,6 +1,7 @@
 
 
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -786,7 +787,7 @@ public static partial class Workflow
         ctx.Status("验证 uid=0");
         var res = ctx.Shell(adb, "id", root: true, timeoutMs: 90000, allowFail: true);
         var first = res.Out.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0) ?? "";
-        ctx.Log($"ksud debug su → {(first.Length > 0 ? first : "(无输出)")}", "info");
+        ctx.Log($"root 通道 → {(first.Length > 0 ? first : "(无输出)")}", "info");
         if (!first.StartsWith("uid=0", StringComparison.Ordinal))
         {
             throw new StepFailException("root 通道没拿到 uid=0（主判据失败）。可以重跑本步骤；" +
@@ -822,8 +823,8 @@ public static partial class Workflow
     // ── DFRoot（CVE-2026-43284）临时 root 通道 ──
     //
     // DFRoot 只能以「装在手机上的 App」形式跑：它得用 Android 框架的 IpSecManager 建 IPsec ESP
-    // transform，再把参数交给 libdfroot.so。所以工具箱只负责把 KernelSU 管理器和 DFRoot 装到
-    // 手机上、打开它，剩下那一下由用户在 DFRoot 界面里自己点（用上游官方 apk，不做改动）。
+    // transform，再把参数交给 libdfroot.so。所以工具箱只负责装它、打开它，然后等 uid=0 ——
+    // 中间那一下「Launch Root」由用户在手机上点。
 
     private static bool IsDfroot(IReadOnlyDictionary<string, object?>? vars) =>
         vars is not null && vars.TryGetValue("method", out var m) && m?.ToString() == "dfroot";
@@ -831,119 +832,176 @@ public static partial class Workflow
     private static string TemprootMethod(Dictionary<string, object?>? parameters) =>
         IsDfroot(parameters) ? "dfroot" : "gpu";
 
-    private static Step D1Device() => new("检查设备是否在线", ctx =>
+    private static Step D1Launch() => new("在手机上打开 DFRoot", ctx =>
     {
-        var model = DeviceOnline(ctx);
-        ctx.Extras["kernel"] = adb.KernelRaw();
-        ctx.Extras["kver"] = adb.KernelVersion();
-        ctx.Log($"内核：{(ctx.Extras["kver"]?.ToString() ?? "?")}", "info");
-        return model;
-    });
-
-    private static Step D2Manager() => new("确认手机上有 SU 管理器", ctx =>
-    {
-        var candidates = InstalledPackages()
-            .Where(p => AppConfig.SuManagerHints.Any(h => p.Contains(h, StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-        if (candidates.Count == 0)
-        {
-            throw new StepFailException(
-                "手机上没找到 SU 管理器。先在『资源下载』里下载并安装 KernelSU 管理器，再重跑本阶段。");
-        }
-        ctx.Log($"SU 管理器：{string.Join("、", candidates)}", "ok");
-        return string.Join("、", candidates);
-    });
-
-    private static Step D3App() => new("确认手机上装了 DFRoot", ctx =>
-    {
-        if (InstalledPackages().Contains(AppConfig.DfrootPackage))
-        {
-            ctx.Log("DFRoot 已安装。", "ok");
-            return "已安装";
-        }
-        var apk = AppConfig.FindDfrootApk();
-        if (apk is null)
+        DeviceOnline(ctx);
+        if (!InstalledPackages().Contains(AppConfig.DfrootPackage))
         {
             throw new StepFailException(
                 "手机上还没装 DFRoot。先在『资源下载』里下载并安装 DFRoot，再重跑本阶段。");
         }
-        ctx.Log($"apk：{apk}", "note");
-        var res = ctx.Run(adb.AdbArgv("install", "-r", apk), label: "adb install",
-            timeoutMs: 300000, allowFail: true);
-        if (!res.Ok && res.Out.Contains("UPDATE_INCOMPATIBLE", StringComparison.OrdinalIgnoreCase))
-        {
-            ctx.Log("手机上已有一个签名不同的 df.root，先卸掉再装。", "warn");
-            ctx.Run(adb.AdbArgv("uninstall", AppConfig.DfrootPackage), label: "adb uninstall",
-                timeoutMs: 120000, allowFail: true);
-            res = ctx.Run(adb.AdbArgv("install", "-r", apk), label: "adb install",
-                timeoutMs: 300000, allowFail: true);
-        }
-        if (!res.Ok && !res.Out.Contains("Success", StringComparison.Ordinal))
-            throw new StepFailException($"安装 DFRoot 失败：{res.Out.Trim()}");
-        return "已安装";
-    });
-
-    private static Step D4Launch() => new("打开 DFRoot，等你在手机上点 Launch Root", ctx =>
-    {
-        ctx.Shell(adb, "logcat -c", timeoutMs: 30000, allowFail: true, stream: false);
         var res = ctx.Run(adb.AdbArgv("shell", "am", "start", "-n", AppConfig.DfrootComponent),
             label: "am start", timeoutMs: 60000, allowFail: true);
         if (!res.Ok || res.Out.Contains("Error", StringComparison.OrdinalIgnoreCase))
             throw new StepFailException($"打开 DFRoot 失败：{res.Out.Trim()}");
-        ctx.Log("手机上已打开 DFRoot：选中你的 SU 管理器 → 点 Launch Root。", "note");
         return "已打开";
     });
 
-    private static Step D5WaitRoot() => new("等待 root 生效（最多 5 分钟）", ctx =>
+    // DFRoot 这条路手机上没有 shell 够得着的 ksud（KernelSU 装的 /data/adb/ksud 和 DFRoot 自己
+    // 用的 /data/user_de/0/df.root/ksud 都是 root-only），而设备自带的 su 又卡在管理器授权上。
+    // GPU 链路之所以能要 root，就是因为它自己把 bundle 里的 ksud 推到了 /data/local/tmp 并 chmod 755。
+    // 这里照做：从 SU 管理器 apk 里抠出 libksud.so（DFRoot 自己也是拿它当 ksud 用的）推上去。
+    private static Step D2EnsureKsud() => new("把 SU 管理器自带的 ksud 放上去", ctx =>
     {
-        ctx.Status("等待 DFRoot / uid=0");
+        if (adb.ShellText($"[ -x {AppConfig.Ksud} ] && echo yes", timeoutMs: 20000)
+               .Contains("yes", StringComparison.Ordinal))
+        {
+            ctx.Log($"{AppConfig.Ksud} 已经在手机上。", "ok");
+            return "已存在";
+        }
+
+        var apk = FetchSuManagerApk(ctx);
+        var local = ExtractKsud(ctx, apk);
+        ctx.Run(adb.AdbArgv("push", local, AppConfig.Ksud), label: "adb push ksud",
+            timeoutMs: 300000, allowFail: false);
+        ctx.Shell(adb, $"chmod 755 {AppConfig.Ksud}", timeoutMs: 60000);
+        ctx.Log($"{AppConfig.Ksud} 已就位，root 通道有了。", "ok");
+        return "已推送";
+    });
+
+    /// <summary>找一个自带 libksud.so 的 SU 管理器，把它的 apk 弄到本机：先看本机 payload 目录，再回手机拉。</summary>
+    private static string FetchSuManagerApk(Ctx ctx)
+    {
+        foreach (var dir in AppConfig.PayloadDirs())
+        {
+            try
+            {
+                if (!Directory.Exists(dir))
+                    continue;
+                var hit = Directory.EnumerateFiles(dir, "*.apk").FirstOrDefault(f =>
+                    AppConfig.SuManagerHints.Any(h =>
+                        Path.GetFileName(f).Contains(h, StringComparison.OrdinalIgnoreCase)));
+                if (hit != null)
+                {
+                    ctx.Log($"本机已有：{Path.GetFileName(hit)}", "note");
+                    return hit;
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
+        var pkgs = InstalledPackages()
+            .Where(p => AppConfig.SuManagerHints.Any(h => p.Contains(h, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(p => p.Equals(AppConfig.KsuPackage, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ToList();
+        if (pkgs.Count == 0)
+        {
+            throw new StepFailException(
+                "手机上没找到自带 libksud.so 的 SU 管理器。先在『资源下载』里装一个 KernelSU 管理器，再重跑本阶段。");
+        }
+
+        var local = Path.Combine(AppConfig.AppDir(), "tmp", "su-manager.apk");
+        Directory.CreateDirectory(Path.GetDirectoryName(local)!);
+        foreach (var pkg in pkgs)
+        {
+            var remote = adb.ShellText($"pm path {pkg}", timeoutMs: 30000)
+                .Split('\n')
+                .Select(l => l.Trim())
+                .FirstOrDefault(l => l.StartsWith("package:", StringComparison.Ordinal) &&
+                                     l.EndsWith("base.apk", StringComparison.OrdinalIgnoreCase));
+            if (remote is null)
+                continue;
+            File.Delete(local);
+            var res = ctx.Run(adb.AdbArgv("pull", remote.Substring("package:".Length), local),
+                label: "adb pull", timeoutMs: 300000, allowFail: true, stream: false);
+            if (res.Ok && File.Exists(local))
+            {
+                ctx.Log($"从手机上拉回 {pkg} 的 apk。", "note");
+                return local;
+            }
+        }
+        throw new StepFailException("拿不到 SU 管理器的 apk，没法从里面取 ksud。");
+    }
+
+    /// <summary>从 apk 里抠出 libksud.so，落到本机临时目录。</summary>
+    private static string ExtractKsud(Ctx ctx, string apk)
+    {
+        using var zip = System.IO.Compression.ZipFile.OpenRead(apk);
+        var entry = zip.Entries.FirstOrDefault(e =>
+                        e.FullName.Equals("lib/arm64-v8a/libksud.so", StringComparison.OrdinalIgnoreCase))
+                    ?? zip.Entries.FirstOrDefault(e =>
+                        e.FullName.EndsWith("/libksud.so", StringComparison.OrdinalIgnoreCase));
+        if (entry is null)
+            throw new StepFailException($"{Path.GetFileName(apk)} 里没有 libksud.so，换个 SU 管理器再试。");
+
+        var outPath = Path.Combine(AppConfig.AppDir(), "tmp", "ksud");
+        Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+        entry.ExtractToFile(outPath, true);
+        ctx.Log($"取到 libksud.so（{entry.Length} 字节）", "note");
+        return outPath;
+    }
+
+    private static Step D3WaitRoot() => new("等待 root 生效（ksud 返回 uid=0）", ctx =>
+    {
+        ctx.Status("等待 uid=0");
         var deadline = DateTime.UtcNow.AddSeconds(300);
-        var marker = "";
+        var loaded = false;
+        var hinted = false;
+        string? lastEcho = null;
         while (DateTime.UtcNow < deadline)
         {
             ctx.CheckCancel();
 
-            var log = adb.ShellText($"logcat -d -s {AppConfig.DfrootLogTag}:I", timeoutMs: 30000);
-            if (log.Contains(AppConfig.DfrootOkMarker, StringComparison.Ordinal))
+            var res = adb.Shell("id", root: true, timeoutMs: 25000, cancel: ctx.Cancel, allowFail: true);
+            var echo = (res.Out + " " + res.Error).Replace("\r", "").Trim();
+            if (echo.StartsWith("uid=0", StringComparison.Ordinal))
             {
-                marker = AppConfig.DfrootOkMarker;
-                break;
+                ctx.Extras["root"] = true;
+                ctx.Log($"ROOT OK（{echo.Split('\n')[0].Trim()}）—— 临时 root 已生效。重启手机后失效，需要重跑本阶段。", "ok");
+                return "uid=0";
             }
-            var failure = AppConfig.DfrootFailMarkers.FirstOrDefault(m => log.Contains(m, StringComparison.Ordinal));
-            if (failure is not null)
+            if (echo != lastEcho)
             {
-                DumpDfrootLog(ctx, log);
-                throw new StepFailException($"DFRoot 报错：{failure}。内核太新、或厂商回填了补丁，这条路就走不通。");
+                lastEcho = echo;
+                ctx.Log($"root 探测回显：{(echo.Length > 0 ? echo : "(空)")}　退出码 {res.Code}", "warn");
+            }
+            if (!hinted && (echo.Contains("Operation not permitted", StringComparison.Ordinal) ||
+                            echo.Contains("Bad file descriptor", StringComparison.Ordinal) ||
+                            echo.Contains("Permission denied", StringComparison.Ordinal)))
+            {
+                hinted = true;
+                ctx.Log("内核不给 adb shell 开门。去手机上打开 KernelSU 管理器 → 设置 → 打开『adb root』，" +
+                        "再重跑本阶段。", "warn");
             }
 
-            var uid = adb.ShellText("su -c id", timeoutMs: 20000);
-            if (uid.StartsWith("uid=0", StringComparison.Ordinal))
+            if (!loaded)
             {
-                marker = "uid=0";
-                break;
+                var log = adb.ShellText($"logcat -d -s {AppConfig.DfrootLogTag}:I", timeoutMs: 30000);
+                if (log.Contains(AppConfig.DfrootOkMarker, StringComparison.Ordinal))
+                {
+                    loaded = true;
+                    ctx.Log("DFRoot 已经把 KernelSU 加载起来了，继续确认 root 通道…", "ok");
+                }
             }
             Thread.Sleep(2000);
         }
 
-        if (marker.Length == 0)
-        {
-            DumpDfrootLog(ctx, adb.ShellText($"logcat -d -s {AppConfig.DfrootLogTag}:I", timeoutMs: 30000));
-            throw new StepFailException("等不到 root 生效（5 分钟超时）。看上面的 dfroot 日志；" +
-                                        "还没点 Launch Root，或者内核不在 DirtyFrag 的适用范围。");
-        }
-
-        ctx.Extras["root"] = true;
-        ctx.Log($"ROOT OK（{marker}）—— 临时 root 已生效。重启手机后失效，需要重跑本阶段。", "ok");
-        return marker;
+        DumpDfrootLog(ctx, adb.ShellText($"logcat -d -s {AppConfig.DfrootLogTag}:I", timeoutMs: 30000));
+        throw new StepFailException("等不到 uid=0（5 分钟超时）。上面那行『root 探测回显』就是原因；" +
+                                    "如果是 Operation not permitted / Bad file descriptor，去手机上打开 " +
+                                    "KernelSU 管理器 → 设置 → 『adb root』，再重跑本阶段。");
     });
 
-    private static Step D6Record() => new("写入账本", ctx =>
+    private static Step D4Record() => new("写入账本", ctx =>
     {
         StateStore.SetDevice(new Dictionary<string, object?>
         {
             ["model"] = adb.Prop("ro.product.model"),
-            ["kernel"] = (ctx.Extras.TryGetValue("kernel", out var k) ? k?.ToString() : null) ?? adb.KernelRaw(),
-            ["kver"] = ctx.Extras.TryGetValue("kver", out var kv) ? kv?.ToString() ?? "" : "",
+            ["kernel"] = adb.KernelRaw(),
+            ["kver"] = adb.KernelVersion(),
             ["slot"] = adb.ActiveSlot(),
             ["serial"] = DeviceSerial(),
             ["root"] = true,
@@ -976,11 +1034,10 @@ public static partial class Workflow
             return PreviewTemproot(parameters);
         return new[]
         {
-            "# 1) 确认设备在线：adb get-state",
-            "# 2) 确认装有 SU 管理器：adb shell pm list packages -3",
-            "# 3) 确认装有 DFRoot：adb shell pm list packages df.root",
-            "# 4) 打开 DFRoot：adb shell am start -n df.root/.MainActivity",
-            "# 5) 在手机上点 Launch Root，然后等：adb shell \"su -c id\" 返回 uid=0",
+            "# 1) 打开 DFRoot：adb shell am start -n df.root/.MainActivity",
+            "# 2) 在手机上点 Launch Root；工具箱同时从 SU 管理器 apk 里取出 libksud.so 推上去：",
+            $"      adb push <su-manager.apk 里的 libksud.so> {AppConfig.Ksud} && adb shell chmod 755 {AppConfig.Ksud}",
+            $"# 3) 等 root：adb shell \"{Adb.RootRemote("id")}\" 返回 uid=0",
         };
     }
     private static string[] PreviewTemproot(Dictionary<string, object?>? parameters)
@@ -1011,7 +1068,7 @@ public static partial class Workflow
             "",
             "# 3) 等待异步 insmod，然后验证主判据",
             $"{adbPath} shell \"grep -c '^kernelsu' /proc/modules\"",
-            $"{adbPath} shell \"echo 'id' | /data/local/tmp/ksud debug su\"",
+            $"{adbPath} shell \"{Adb.RootRemote("id")}\"",
         };
     }
 
@@ -1123,7 +1180,7 @@ public static partial class Workflow
             var psize = adb.PartitionSize(part, cancel: ctx.Cancel);
             var remote = $"{AppConfig.RemoteBackup}/{part}.img";
             ctx.Shell(adb, $"dd if={dev} of={remote} bs={AppConfig.DdBs} && sync",
-                root: true, timeoutMs: 900000, stream: false);
+                root: true, timeoutMs: 900000);
             var dsize = adb.RemoteSize(remote, root: true, cancel: ctx.Cancel);
             if (dsize is not { } dumpSize || dumpSize <= 0)
                 throw new StepFailException($"备份 {part} 后读不到设备端文件大小，请重试本步骤。");
@@ -1236,11 +1293,11 @@ public static partial class Workflow
         return new[]
         {
             "# 需要临时 root（临时 Root 阶段）；<SLOT> 为自动检测的活动槽",
-            $"{adbPath} shell \"echo 'dd if={AppConfig.BlockByName}abl_a of={AppConfig.RemoteBackup}/abl_a.img bs={AppConfig.DdBs} && sync' | {AppConfig.Ksud} debug su\"",
-            $"{adbPath} shell \"echo 'dd if={AppConfig.BlockByName}abl_b of={AppConfig.RemoteBackup}/abl_b.img bs={AppConfig.DdBs} && sync' | {AppConfig.Ksud} debug su\"",
-            $"{adbPath} shell \"echo 'dd if={AppConfig.BlockByName}ocdt of={AppConfig.RemoteBackup}/ocdt.img bs={AppConfig.DdBs} && sync' | {AppConfig.Ksud} debug su\"",
+            $"{adbPath} shell \"{Adb.RootRemote("dd if={AppConfig.BlockByName}abl_a of={AppConfig.RemoteBackup}/abl_a.img bs={AppConfig.DdBs} && sync")}\"",
+            $"{adbPath} shell \"{Adb.RootRemote("dd if={AppConfig.BlockByName}abl_b of={AppConfig.RemoteBackup}/abl_b.img bs={AppConfig.DdBs} && sync")}\"",
+            $"{adbPath} shell \"{Adb.RootRemote("dd if={AppConfig.BlockByName}ocdt of={AppConfig.RemoteBackup}/ocdt.img bs={AppConfig.DdBs} && sync")}\"",
             $"{adbPath} pull {AppConfig.RemoteBackup}/abl_<SLOT>.img ./backup/",
-            $"{adbPath} shell \"echo 'md5sum {AppConfig.RemoteBackup}/ocdt.img' | {AppConfig.Ksud} debug su\"",
+            $"{adbPath} shell \"{Adb.RootRemote("md5sum {AppConfig.RemoteBackup}/ocdt.img")}\"",
         };
     }
 
@@ -1293,6 +1350,32 @@ public static partial class Workflow
         return "已推送";
     });
 
+    /// <summary>
+    /// DFRoot 走完之后，它的 bootstrap 会把所有以 _a / _b 结尾的分区（abl 就在其中）用
+    /// BLKROSET 设成只读。内核写只读块设备时直接返回 EPERM，dmesg 里一个字都不留 ——
+    /// 所以写分区之前必须先解开只读，写完再恢复。
+    /// </summary>
+    private static void SetPartitionRo(Ctx ctx, string part, bool readOnly)
+    {
+        var flag = readOnly ? "--setro" : "--setrw";
+        ctx.Shell(adb, $"blockdev {flag} {AppConfig.BlockByName}{part}",
+            root: true, timeoutMs: 60000, allowFail: true, stream: false);
+    }
+
+    /// <summary>包住一次分区写入：先解开只读，写完不管成败都恢复。</summary>
+    private static void WritePartitionBlock(Ctx ctx, string part, string ddCommand)
+    {
+        SetPartitionRo(ctx, part, readOnly: false);
+        try
+        {
+            ctx.Shell(adb, ddCommand, root: true, timeoutMs: 900000);
+        }
+        finally
+        {
+            SetPartitionRo(ctx, part, readOnly: true);
+        }
+    }
+
     private static string DdWrite(Ctx ctx, string part, string imageLocal, string key)
     {
         var remote = RemoteImage(key);
@@ -1312,8 +1395,7 @@ public static partial class Workflow
             ctx.Log($"提示：镜像 {Path.GetFileName(imageLocal)} 只有分区 {part} 的 {100.0 * size / ps2:0.0}%，" +
                     "确认一下选的是对的镜像。", "warn");
         }
-        ctx.Shell(adb, $"dd if={remote} of={dev} bs={AppConfig.DdBs} && sync",
-            root: true, timeoutMs: 900000, stream: false);
+        WritePartitionBlock(ctx, part, $"dd if={remote} of={dev} bs={AppConfig.DdBs} && sync");
         var srcMd5 = FileTools.Md5File(imageLocal, ctx.Cancel);
         var backMd5 = adb.PartitionHeadMd5(part, size, cancel: ctx.Cancel);
         if (srcMd5.Length > 0 && backMd5 is { } bmd5 && srcMd5 != bmd5)
@@ -1360,12 +1442,13 @@ public static partial class Workflow
             $"{adbPath} push \"{ocdt}\" {AppConfig.RemoteImages}/",
             "",
             "# ocdt 单分区",
-            $"{adbPath} shell \"echo 'dd if={AppConfig.RemoteImages}/ocdt.img of={AppConfig.BlockByName}ocdt bs={AppConfig.DdBs} && sync' | {AppConfig.Ksud} debug su\"",
+            $"{adbPath} shell \"{Adb.RootRemote("dd if={AppConfig.RemoteImages}/ocdt.img of={AppConfig.BlockByName}ocdt bs={AppConfig.DdBs} && sync")}\"",
+            "# DFRoot 走完之后 _a/_b 分区是只读的，工具箱会先 blockdev --setrw，写完再 --setro",
             "# 活动槽 abl（<SLOT> 自动检测，教程示例为 b）",
-            $"{adbPath} shell \"echo 'dd if={AppConfig.RemoteImages}/abl.img of={AppConfig.BlockByName}abl_<SLOT> bs={AppConfig.DdBs} && sync' | {AppConfig.Ksud} debug su\"",
+            $"{adbPath} shell \"{Adb.RootRemote("dd if={AppConfig.RemoteImages}/abl.img of={AppConfig.BlockByName}abl_<SLOT> bs={AppConfig.DdBs} && sync")}\"",
             "",
             "# 读回校验（前 <镜像大小> 字节）",
-            $"{adbPath} shell \"echo 'head -c <SIZE> {AppConfig.BlockByName}ocdt | md5sum' | {AppConfig.Ksud} debug su\"",
+            $"{adbPath} shell \"{Adb.RootRemote("head -c <SIZE> {AppConfig.BlockByName}ocdt | md5sum")}\"",
         };
     }
 
@@ -1597,8 +1680,7 @@ public static partial class Workflow
             var remote = $"{AppConfig.RemoteBackup}/{part}.img";
             var dev = AppConfig.BlockByName + part;
             ctx.Status($"还原 {part}");
-            ctx.Shell(adb, $"dd if={remote} of={dev} bs={AppConfig.DdBs} && sync",
-                root: true, timeoutMs: 900000, stream: false);
+            WritePartitionBlock(ctx, part, $"dd if={remote} of={dev} bs={AppConfig.DdBs} && sync");
             var size = FileTools.FileSize(local) ?? 0;
             var want = FileTools.Md5File(local, ctx.Cancel);
             var got = adb.PartitionHeadMd5(part, size, cancel: ctx.Cancel);
@@ -1635,8 +1717,8 @@ public static partial class Workflow
             "# 需要临时 root（临时 Root 阶段）；备份来自 backup 目录或你指定的文件夹",
             $"{adbPath} push ./backup/abl_<SLOT>*.img {AppConfig.RemoteBackup}/abl_<SLOT>.img",
             $"{adbPath} push ./backup/ocdt*.img {AppConfig.RemoteBackup}/ocdt.img",
-            $"{adbPath} shell \"echo 'dd if={AppConfig.RemoteBackup}/abl_<SLOT>.img of={AppConfig.BlockByName}abl_<SLOT> bs={AppConfig.DdBs} && sync' | {AppConfig.Ksud} debug su\"",
-            $"{adbPath} shell \"echo 'dd if={AppConfig.RemoteBackup}/ocdt.img of={AppConfig.BlockByName}ocdt bs={AppConfig.DdBs} && sync' | {AppConfig.Ksud} debug su\"",
+            $"{adbPath} shell \"{Adb.RootRemote("dd if={AppConfig.RemoteBackup}/abl_<SLOT>.img of={AppConfig.BlockByName}abl_<SLOT> bs={AppConfig.DdBs} && sync")}\"",
+            $"{adbPath} shell \"{Adb.RootRemote("dd if={AppConfig.RemoteBackup}/ocdt.img of={AppConfig.BlockByName}ocdt bs={AppConfig.DdBs} && sync")}\"",
         };
     }
 
@@ -1655,6 +1737,8 @@ public static partial class Workflow
                         ("gpu", "GPU · CVE-2025-21479（c14系统）"),
                         ("dfroot", "DFRoot · CVE-2026-43284（c16系统）"),
                     }),
+                new("dfroot_hint", "在手机上点 Launch Root", "note",
+                    when: vars => IsDfroot(vars)),
                 new("bundle", "bundle 目录", "dir",
                     "解压后的 Release bundle；本机文件名可任意（后缀 / 副本 / 版本号 / 空格都行）。本机不需要 Git Bash —— 一键 sh 的逻辑已经内置。",
                     when: vars => !IsDfroot(vars)),
@@ -1677,7 +1761,7 @@ public static partial class Workflow
             danger: "exploit 直接写内核内存，失败会触发重启；请保持屏幕常亮、别拔线。",
             preview: PreviewTemproot2,
             build: p => TemprootMethod(p) == "dfroot"
-                ? new List<Step> { D1Device(), D2Manager(), D3App(), D4Launch(), D5WaitRoot(), D6Record() }
+                ? new List<Step> { D1Launch(), D2EnsureKsud(), D3WaitRoot(), D4Record() }
                 : new List<Step> { S3Kernel(), S3Bundle(), S3Push(), S3Profile(), S3Exploit(), S3Verify(), S3Record() },
             needsRoot: false),
         new("push", 2, "推送解锁文件",

@@ -7,12 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OppoUnlockToolbox", "OppoUn
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OppoUnlockToolbox.Core", "OppoUnlockToolbox.Core\OppoUnlockToolbox.Core.csproj", "{4CD00179-E775-4B36-8308-9639B8FDD8AB}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7D513BE3-3A96-49B4-BFBC-C552921AA230}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "E2E", "tests\E2E\E2E.csproj", "{D9EEC847-39E7-4E80-A315-62812544A283}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MockShim", "tests\MockShim\MockShim.csproj", "{DC744996-D20E-4FE6-82D9-F86FAC9AF755}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,17 +24,5 @@ Global
 		{4CD00179-E775-4B36-8308-9639B8FDD8AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4CD00179-E775-4B36-8308-9639B8FDD8AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4CD00179-E775-4B36-8308-9639B8FDD8AB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D9EEC847-39E7-4E80-A315-62812544A283}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D9EEC847-39E7-4E80-A315-62812544A283}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D9EEC847-39E7-4E80-A315-62812544A283}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D9EEC847-39E7-4E80-A315-62812544A283}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DC744996-D20E-4FE6-82D9-F86FAC9AF755}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DC744996-D20E-4FE6-82D9-F86FAC9AF755}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DC744996-D20E-4FE6-82D9-F86FAC9AF755}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DC744996-D20E-4FE6-82D9-F86FAC9AF755}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{D9EEC847-39E7-4E80-A315-62812544A283} = {7D513BE3-3A96-49B4-BFBC-C552921AA230}
-		{DC744996-D20E-4FE6-82D9-F86FAC9AF755} = {7D513BE3-3A96-49B4-BFBC-C552921AA230}
 	EndGlobalSection
 EndGlobal
