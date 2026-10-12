@@ -22,7 +22,7 @@ Write-Output "dotnet: $dotnet"
 & $dotnet build (Join-Path $csharp "OppoUnlockToolbox\OppoUnlockToolbox.csproj") -c Release --nologo -v m
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
-$exe = Join-Path $csharp "OppoUnlockToolbox\bin\Release\net8.0-windows\OppoUnlockToolbox.exe"
+$exe = Join-Path $csharp "OppoUnlockToolbox\bin\Release\net48\OppoUnlockToolbox.exe"
 if (-not (Test-Path $exe)) { throw "missing artifact: $exe" }
 Remove-Item (Join-Path $exe "..\selftest.txt") -ErrorAction SilentlyContinue
 $selftestOut = Join-Path $exe "..\selftest-stdout.txt"
@@ -40,20 +40,26 @@ if (Test-Path $selftest) {
 }
 
 if ($Publish) {
+    # net48 是「依赖框架」发布：.NET Framework 4.8 由系统自带，产物就是一个小文件夹
+    # （exe + Core.dll + System.Text.Json 那几个依赖），总量约 2 MB，没有单文件可打。
     $cnName = "OPPO" + [char]0x89E3 + [char]0x9501 + [char]0x5DE5 + [char]0x5177 + [char]0x7BB1
     $out = Join-Path $root (Join-Path "dist-cs" $cnName)
-    & $dotnet publish (Join-Path $csharp "OppoUnlockToolbox\OppoUnlockToolbox.csproj") `
-        -c Release -r win-x64 --self-contained true `
-        -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true `
-        -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishDir=$out --nologo -v m
-    if ($LASTEXITCODE -ne 0) { exit 1 }
+    $bin = Join-Path $csharp "OppoUnlockToolbox\bin\Release\net48"
+    if (-not (Test-Path (Join-Path $bin "OppoUnlockToolbox.exe"))) { throw "missing artifact: $bin" }
 
-    $published = Get-ChildItem $out -Filter "OppoUnlockToolbox.exe" | Select-Object -First 1
-    $target = [System.IO.Path]::Combine($out, "OPPO" + [char]0x89E3 + [char]0x9501 + [char]0x5DE5 + [char]0x5177 + [char]0x7BB1 + ".exe")
-    if ($published) {
-        if (Test-Path $target) { Remove-Item $target -Force }
-        Rename-Item $published.FullName $target -Force
-    }
+    # 不动目录里已有的 tools\ 和 resources\（安装包要用），只覆盖程序本体
+    if (-not (Test-Path $out)) { New-Item -ItemType Directory -Path $out -Force | Out-Null }
+    Copy-Item (Join-Path $bin "*.dll") $out -Force
+    Copy-Item (Join-Path $bin "OppoUnlockToolbox.exe") $out -Force
+    Copy-Item (Join-Path $bin "OppoUnlockToolbox.exe.config") $out -Force
+
+    $exeName = "OPPO" + [char]0x89E3 + [char]0x9501 + [char]0x5DE5 + [char]0x5177 + [char]0x7BB1 + ".exe"
+    if (Test-Path (Join-Path $out $exeName)) { Remove-Item (Join-Path $out $exeName) -Force }
+    Rename-Item (Join-Path $out "OppoUnlockToolbox.exe") $exeName -Force
+    # 配置文件必须跟着 exe 一起改名，否则绑定重定向不会生效
+    if (Test-Path (Join-Path $out ($exeName + ".config"))) { Remove-Item (Join-Path $out ($exeName + ".config")) -Force }
+    Rename-Item (Join-Path $out "OppoUnlockToolbox.exe.config") ($exeName + ".config") -Force
+
     Write-Output "publish done: $out"
 }
 
@@ -61,7 +67,7 @@ if ($Installer) {
     function Find-Issc {
         $cmd = Get-Command iscc -ErrorAction SilentlyContinue
         if ($cmd) { return $cmd.Source }
-        $scoop = Join-Path $env:USERPROFILE "scooppps\inno-setup\current\ISCC.exe"
+        $scoop = Join-Path $env:USERPROFILE "scoop\apps\inno-setup\current\ISCC.exe"
         if (Test-Path $scoop) { return $scoop }
         $pf = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
         if (Test-Path $pf) { return $pf }

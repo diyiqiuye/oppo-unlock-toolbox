@@ -15,7 +15,7 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        // net48 自带全部代码页，不需要 .NET Core 那套 CodePagesEncodingProvider。
         SelfTestMode = e.Args.Contains("--selftest");
 
         DispatcherUnhandledException += (_, args) =>

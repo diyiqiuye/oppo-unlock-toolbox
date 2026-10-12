@@ -40,8 +40,8 @@ public sealed class DeviceMonitor : IDisposable
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
+                    Arguments = "track-devices",
                 };
-                psi.ArgumentList.Add("track-devices");
                 using var proc = Process.Start(psi)
                     ?? throw new InvalidOperationException("track-devices 启动失败");
                 _proc = proc;
@@ -59,7 +59,12 @@ public sealed class DeviceMonitor : IDisposable
                 };
                 proc.BeginOutputReadLine();
                 proc.BeginErrorReadLine();
-                await proc.WaitForExitAsync(token);
+                while (!proc.HasExited)
+                {
+                    if (token.IsCancellationRequested)
+                        return;
+                    await Task.Delay(200, token);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -95,7 +100,7 @@ public sealed class DeviceMonitor : IDisposable
     public void Dispose()
     {
         _cts.Cancel();
-        try { _proc?.Kill(entireProcessTree: true); } catch { }
+        try { _proc?.Kill(); } catch { }
         _cts.Dispose();
     }
 }

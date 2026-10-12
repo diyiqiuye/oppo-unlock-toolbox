@@ -31,7 +31,7 @@ public static class FileTools
                 total += read;
             }
             md5.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            return Convert.ToHexString(md5.Hash ?? Array.Empty<byte>()).ToLowerInvariant();
+            return BitConverter.ToString(md5.Hash ?? Array.Empty<byte>()).Replace("-", "").ToLowerInvariant();
         }
         catch
         {
@@ -80,6 +80,6 @@ public static class FileTools
 
     public static string FmtMd5(string? md5, int width = 8)
     {
-        return string.IsNullOrEmpty(md5) ? "—" : md5[..Math.Min(width, md5.Length)];
+        return string.IsNullOrEmpty(md5) ? "—" : md5.Substring(0, Math.Min(width, md5.Length));
     }
 }

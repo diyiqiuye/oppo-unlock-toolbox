@@ -73,8 +73,7 @@ public static class ProcessRunner
             RedirectStandardInput = opts.InputText != null,
         };
         startInfo.FileName = argv[0];
-        for (var i = 1; i < argv.Length; i++)
-            startInfo.ArgumentList.Add(argv[i]);
+        startInfo.Arguments = Cmd.QuoteArgv(argv.Skip(1));
         if (opts.ExtraEnv != null)
             foreach (var (key, value) in opts.ExtraEnv)
                 startInfo.Environment[key] = value;
@@ -179,14 +178,14 @@ public static class ProcessRunner
 
     private static void TryKill(Process proc)
     {
-        try { proc.Kill(entireProcessTree: true); } catch {   }
+        try { proc.Kill(); } catch {   }
     }
 
     public static (bool Ok, string Error) SpawnConsole(IEnumerable<object?> argvRaw, string? cwd = null,
         bool keepOpen = true, IEnumerable<string>? banner = null)
     {
         var argv = argvRaw.Select(a => a?.ToString() ?? "").ToArray();
-        if (OperatingSystem.IsWindows() && keepOpen)
+        if (keepOpen)
         {
             var bat = WriteConsoleBat(argv, banner);
             if (!string.IsNullOrEmpty(bat))

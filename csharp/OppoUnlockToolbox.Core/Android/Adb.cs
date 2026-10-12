@@ -10,10 +10,10 @@ public sealed class ToolMissingException : Exception
     public ToolMissingException(string message) : base(message) { }
 }
 
-public sealed partial class Adb
+public sealed class Adb
 {
-    [GeneratedRegex(@"^\[([^\]]+)\]:\s*\[(.*)\]\s*$")]
-    private static partial Regex PropRegex();
+    private static readonly Regex PropRegex = new(@"^\[([^\]]+)\]:\s*\[(.*)\]\s*$",
+        RegexOptions.Compiled);
 
     public string Serial { get; set; } = "";
     public string FastbootSerial { get; set; } = "";
@@ -80,9 +80,9 @@ public sealed partial class Adb
             foreach (var token in parts.Skip(2))
             {
                 if (token.StartsWith("model:", StringComparison.Ordinal))
-                    entry["model"] = token.Split(':', 2)[1];
+                    entry["model"] = token.Substring(token.IndexOf(':') + 1);
                 else if (token.StartsWith("product:", StringComparison.Ordinal))
-                    entry["product"] = token.Split(':', 2)[1];
+                    entry["product"] = token.Substring(token.IndexOf(':') + 1);
             }
             found.Add(entry);
         }
@@ -272,7 +272,7 @@ public sealed partial class Adb
         var table = new Dictionary<string, string>();
         foreach (var rawLine in text.Split('\n'))
         {
-            var match = PropRegex().Match(rawLine.Trim());
+            var match = PropRegex.Match(rawLine.Trim());
             if (match.Success)
                 table[match.Groups[1].Value] = match.Groups[2].Value;
         }
@@ -342,7 +342,7 @@ public sealed partial class Adb
     {
         var text = ShellText($"wc -c < {path}", root: root, timeoutMs: timeoutMs, cancel: cancel);
         var firstLine = text.Length > 0 ? text.Split('\n')[0] : "";
-        var digits = DigitsRegex().Replace(firstLine, "");
+        var digits = DigitsRegex.Replace(firstLine, "");
         return digits.Length > 0 && long.TryParse(digits, out var value) ? value : null;
     }
 
@@ -352,8 +352,8 @@ public sealed partial class Adb
         var text = ShellText($"md5sum {path}", root: root, timeoutMs: timeoutMs, cancel: cancel);
         foreach (var line in text.Split('\n'))
         {
-            var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length > 0 && parts[0].Length == 32 && HexRegex().IsMatch(parts[0]))
+            var parts = line.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length > 0 && parts[0].Length == 32 && HexRegex.IsMatch(parts[0]))
                 return parts[0].ToLowerInvariant();
         }
         return null;
@@ -367,7 +367,7 @@ public sealed partial class Adb
         var dev = DevicePaths.BlockByName + part;
         var text = ShellText($"blockdev --getsize64 {dev}", root: true, timeoutMs: timeoutMs, cancel: cancel);
         var firstLine = text.Length > 0 ? text.Split('\n')[0] : "";
-        var digits = DigitsRegex().Replace(firstLine, "");
+        var digits = DigitsRegex.Replace(firstLine, "");
         if (digits.Length > 0 && long.TryParse(digits, out var value))
             return value;
         return RemoteSize(dev, root: true, timeoutMs: timeoutMs, cancel: cancel);
@@ -383,8 +383,8 @@ public sealed partial class Adb
             timeoutMs: timeoutMs, cancel: cancel);
         foreach (var line in text.Split('\n'))
         {
-            var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length > 0 && parts[0].Length == 32 && HexRegex().IsMatch(parts[0]))
+            var parts = line.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length > 0 && parts[0].Length == 32 && HexRegex.IsMatch(parts[0]))
                 return parts[0].ToLowerInvariant();
         }
         return null;
@@ -427,9 +427,7 @@ public sealed partial class Adb
     public string DescribeLocalSize(string path) =>
         File.Exists(path) ? FileTools.FmtSize(FileTools.FileSize(path)) : "—";
 
-    [GeneratedRegex(@"[^0-9]")]
-    private static partial Regex DigitsRegex();
+    private static readonly Regex DigitsRegex = new(@"[^0-9]", RegexOptions.Compiled);
 
-    [GeneratedRegex("^[0-9a-f]{32}$")]
-    private static partial Regex HexRegex();
+    private static readonly Regex HexRegex = new("^[0-9a-f]{32}$", RegexOptions.Compiled);
 }

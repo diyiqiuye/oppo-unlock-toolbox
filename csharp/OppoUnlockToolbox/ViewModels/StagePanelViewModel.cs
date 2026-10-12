@@ -26,6 +26,9 @@ public sealed class StagePanelViewModel : ObservableObject
     public Stage Stage => _session.Current;
 
     public string StageChipText => $"阶段 {Stage.No} / {_session.Count}";
+
+    /// <summary>侧栏标题行右边那句短进度。</summary>
+    public string StageProgress => $"{Stage.No} / {_session.Count}";
     public string Title => Stage.Title;
     public string NeedsRootText => Stage.NeedsRoot ? "需要临时 root" : "";
     public bool NeedsRootVisible => Stage.NeedsRoot;
@@ -59,6 +62,7 @@ public sealed class StagePanelViewModel : ObservableObject
         BuildFields();
         Raise(nameof(Stage));
         Raise(nameof(StageChipText));
+        Raise(nameof(StageProgress));
         Raise(nameof(Title));
         Raise(nameof(NeedsRootText));
         Raise(nameof(NeedsRootVisible));
@@ -92,7 +96,7 @@ public sealed class StagePanelViewModel : ObservableObject
     public void ShowFraction(double fraction)
     {
         ProgressIndeterminate = false;
-        ProgressValue = Math.Clamp(fraction, 0, 1) * 100;
+        ProgressValue = (fraction < 0 ? 0 : fraction > 1 ? 1 : fraction) * 100;
     }
 
     private void BuildFields()

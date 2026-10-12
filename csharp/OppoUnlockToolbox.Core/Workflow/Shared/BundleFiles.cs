@@ -10,7 +10,7 @@ using static OppoUnlockToolbox.Core.Workflow.Shared.PartitionWriter;
 
 namespace OppoUnlockToolbox.Core.Workflow.Shared;
 
-internal static partial class BundleFiles
+internal static class BundleFiles
 {
     internal static readonly byte[] ElfMagic = { 0x7f, (byte)'E', (byte)'L', (byte)'F' };
 
@@ -21,15 +21,13 @@ internal static partial class BundleFiles
         if (!new[] { ".exe", ".bin", ".elf", ".img", ".env", "" }.Contains(ext.ToLowerInvariant()))
             baseName = name;
         else
-            baseName = ext.Length > 0 ? name[..^ext.Length] : name;
-        return NonAlnumRegex().Replace(baseName.ToLowerInvariant().Replace("副本", ""), "");
+            baseName = ext.Length > 0 ? name.Substring(0, name.Length - ext.Length) : name;
+        return NonAlnumRegex.Replace(baseName.ToLowerInvariant().Replace("副本", ""), "");
     }
 
-    [GeneratedRegex("[^a-z0-9]+")]
-    internal static partial Regex NonAlnumRegex();
+    private static readonly Regex NonAlnumRegex = new("[^a-z0-9]+", RegexOptions.Compiled);
 
-    [GeneratedRegex(@"\d+\.\d+\.\d+")]
-    internal static partial Regex KverRegex();
+    private static readonly Regex KverRegex = new(@"\d+\.\d+\.\d+", RegexOptions.Compiled);
 
     internal static bool IsElf(string path)
     {
@@ -37,7 +35,7 @@ internal static partial class BundleFiles
         {
             using var fs = File.OpenRead(path);
             var head = new byte[4];
-            return fs.Read(head, 0, 4) == 4 && head.AsSpan().SequenceEqual(ElfMagic);
+            return fs.Read(head, 0, 4) == 4 && head.SequenceEqual(ElfMagic);
         }
         catch
         {
@@ -104,7 +102,7 @@ internal static partial class BundleFiles
             var rest = freeElfs.OrderByDescending(p => FileTools.FileSize(p) ?? 0).ToList();
             string[] order = { "ksud", "exploit_guard", "su0" };
             var picks = order.Where(missing.Contains).ToList();
-            foreach (var (key, path) in picks.Zip(rest))
+            foreach (var (key, path) in picks.Zip(rest, (left, right) => (left, right)))
             {
                 found[key] = path;
                 used.Add(path);
@@ -163,7 +161,7 @@ internal static partial class BundleFiles
         if (envs.Count == 1)
         {
 
-            var found = KverRegex().Match(Path.GetFileName(envs[0]));
+            var found = KverRegex.Match(Path.GetFileName(envs[0]));
             if (found.Success && kver.Length > 0 && found.Value != kver)
                 return ("", $"唯一的 profile 名字里写的是内核 {found.Value}，与设备内核 {kver} 不一致");
             return (envs[0], "只有一个 .env，直接采用");

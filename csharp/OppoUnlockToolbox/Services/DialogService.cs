@@ -34,8 +34,21 @@ public sealed class DialogService
 
     public string? PickDirectory()
     {
-        var dialog = new OpenFolderDialog { Title = "选择目录" };
-        return dialog.ShowDialog(Owner) == true ? dialog.FolderName : null;
+        // net48 的 WPF 没有 OpenFolderDialog（那是 .NET 8 才加的），
+        // 这里借文件对话框当目录选择器：好处是能直接粘贴路径，外观也还是现代那一套。
+        var dialog = new OpenFileDialog
+        {
+            Title = "选择目录",
+            CheckFileExists = false,
+            CheckPathExists = true,
+            ValidateNames = false,
+            FileName = "选中这个文件夹",
+            Filter = "文件夹|*.folder",
+        };
+        if (dialog.ShowDialog(Owner) != true)
+            return null;
+        var path = Path.GetDirectoryName(dialog.FileName);
+        return string.IsNullOrEmpty(path) ? null : path;
     }
 
     public string? PickImage(string label)

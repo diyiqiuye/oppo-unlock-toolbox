@@ -89,6 +89,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     public string ThemeToggleTip => _theme.IsDark ? "切换日间模式" : "切换夜间模式";
 
+    /// <summary>侧栏底部进度卡：已完成几步 / 共几步。</summary>
+    public string ProgressSummary => $"已完成 {_session.DoneCount} / {_session.Count}";
+
+    public double ProgressPercent =>
+        _session.Count == 0 ? 0 : _session.DoneCount * 100.0 / _session.Count;
+
     public ICommand RefreshCommand { get; }
     public ICommand OpenBackupDirCommand { get; }
     public ICommand ResourcesCommand { get; }
@@ -179,6 +185,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private void RefreshRail()
     {
+        Raise(nameof(ProgressSummary));
+        Raise(nameof(ProgressPercent));
         foreach (var item in Rail)
         {
             item.IsCurrent = item.Sid == _session.Current.Sid;

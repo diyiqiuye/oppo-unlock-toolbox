@@ -127,8 +127,9 @@ internal static class TemprootStage
                     continue;
                 pairs.Add(line);
             }
+            var offsets = string.Join(" ", pairs);
             ctx.Log($"已加载 {Path.GetFileName(profile)}：{pairs.Count} 项偏移参数。" +
-                    string.Join(" ", pairs)[..Math.Min(160, string.Join(" ", pairs).Length)], "ok");
+                    offsets.Substring(0, Math.Min(160, offsets.Length)), "ok");
         }
         else
         {
@@ -195,7 +196,7 @@ internal static class TemprootStage
     {
         var attemptsRaw = ctx.Params.TryGetValue("attempts", out var a) && a is not null ? a.ToString() : "";
         var attempts = int.TryParse(attemptsRaw, out var n) ? n : ExploitProfiles.MaxAttempts;
-        attempts = Math.Clamp(attempts, 1, 8);
+        attempts = Math.Min(8, Math.Max(1, attempts));
         var profile = ctx.Extras.TryGetValue("profile_args", out var pa) ? pa?.ToString() ?? "" : "";
         var kver = ctx.Extras.TryGetValue("kver", out var kv) ? kv?.ToString() ?? "" : "";
         var kmi = ExploitProfiles.ExploitKmiFor(kver);

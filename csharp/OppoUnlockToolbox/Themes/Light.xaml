@@ -53,4 +53,14 @@
     <SolidColorBrush x:Key="LvlErr" Color="#F04444"/>
     <SolidColorBrush x:Key="LvlNote" Color="#969BA3"/>
 
+    <!-- ── 玻璃拟态：主窗口压在背景照片上的那一套 ── -->
+    <SolidColorBrush x:Key="Scrim" Color="#99F2F5F8"/>
+    <SolidColorBrush x:Key="GlassPanel" Color="#B3FFFFFF"/>
+    <SolidColorBrush x:Key="GlassPanelStrong" Color="#D2FFFFFF"/>
+    <SolidColorBrush x:Key="GlassPanelBorder" Color="#26000000"/>
+    <SolidColorBrush x:Key="GlassNavFill" Color="#14000000"/>
+    <SolidColorBrush x:Key="GlassNavHover" Color="#26000000"/>
+    <SolidColorBrush x:Key="GlassNavSelected" Color="#66DFF3E6"/>
+    <SolidColorBrush x:Key="GlassBorder" Color="#24000000"/>
+
 </ResourceDictionary>

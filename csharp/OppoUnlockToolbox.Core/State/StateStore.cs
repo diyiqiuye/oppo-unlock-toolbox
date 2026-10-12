@@ -88,7 +88,9 @@ public static class StateStore
                 {
                     WriteIndented = true,
                 }));
-                File.Move(tmp, path, overwrite: true);
+                if (File.Exists(path))
+                    File.Delete(path);
+                File.Move(tmp, path);
             }
             catch
             {

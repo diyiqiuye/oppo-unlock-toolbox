@@ -14,11 +14,20 @@ public static class ToolLocator
 
     private static IEnumerable<string> ToolCandidates(string name)
     {
-        var exe = name + (OperatingSystem.IsWindows() ? ".exe" : "");
+        var exe = name + ".exe";
         var resource = AppPaths.ResourceDir();
         yield return Path.Combine(resource, "tools", "platform-tools", exe);
 
-        var exeDir = Path.GetDirectoryName(Environment.ProcessPath) ?? resource;
+        var exeDir = resource;
+        try
+        {
+            var main = Process.GetCurrentProcess().MainModule;
+            if (main?.FileName is { Length: > 0 } exePath)
+                exeDir = Path.GetDirectoryName(exePath) ?? resource;
+        }
+        catch
+        {
+        }
         yield return Path.Combine(exeDir, "tools", "platform-tools", exe);
 
         foreach (var envName in new[] { "ANDROID_HOME", "ANDROID_SDK_ROOT", "ANDROID_SDK" })
@@ -64,9 +73,9 @@ public static class ToolLocator
             if (found is null)
             {
                 var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
-                foreach (var dir in pathEnv.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                foreach (var dir in pathEnv.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
                 {
-                    var candidate = Path.Combine(dir.Trim(), name + (OperatingSystem.IsWindows() ? ".exe" : ""));
+                    var candidate = Path.Combine(dir.Trim(), name + ".exe");
                     if (File.Exists(candidate))
                     {
                         found = candidate;
@@ -112,8 +121,8 @@ public static class ToolLocator
     private static string? Which(string name)
     {
         var pathEnv = Environment.GetEnvironmentVariable("PATH") ?? "";
-        var suffix = OperatingSystem.IsWindows() ? ".exe" : "";
-        foreach (var dir in pathEnv.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        var suffix = ".exe";
+        foreach (var dir in pathEnv.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
         {
             var candidate = Path.Combine(dir.Trim(), name + suffix);
             if (File.Exists(candidate))

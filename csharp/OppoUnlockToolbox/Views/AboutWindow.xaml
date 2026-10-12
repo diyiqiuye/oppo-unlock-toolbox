@@ -13,10 +13,13 @@
     <Border Style="{StaticResource DialogCard}" Margin="18" MouseLeftButtonDown="OnDragArea">
         <StackPanel Margin="22,20,22,18">
             <StackPanel Orientation="Horizontal">
-                <Border Width="34" Height="34" CornerRadius="{StaticResource RadiusControl}"
-                        Background="{DynamicResource BrandPrimary}">
-                    <ui:IconBox Key="shield" Size="18" Foreground="#FFFFFF"/>
-                </Border>
+                <Rectangle Width="34" Height="29" VerticalAlignment="Center"
+                           Fill="{DynamicResource TextPrimary}">
+                    <Rectangle.OpacityMask>
+                        <ImageBrush ImageSource="pack://application:,,,/Assets/mark.png"
+                                    Stretch="Uniform"/>
+                    </Rectangle.OpacityMask>
+                </Rectangle>
                 <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="OPPO 解锁工具箱" FontSize="{StaticResource FontTitleSm}"
                                FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>

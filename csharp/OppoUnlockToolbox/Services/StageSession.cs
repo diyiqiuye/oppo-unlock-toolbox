@@ -18,6 +18,9 @@ public sealed class StageSession
 
     public string StateOf(string sid) => _states.GetValueOrDefault(sid, "todo");
 
+    /// <summary>已经跑完的阶段数（侧栏底部那张进度卡用）。</summary>
+    public int DoneCount => _states.Values.Count(state => state == "done");
+
     public void Mark(string sid, string state)
     {
         _states[sid] = state;

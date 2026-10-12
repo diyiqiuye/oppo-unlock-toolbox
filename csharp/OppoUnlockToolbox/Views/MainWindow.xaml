@@ -48,7 +48,7 @@
 
         <!-- 右栏「设备环境」里的一行。 -->
         <DataTemplate x:Key="DeviceRowTemplate">
-            <Border Padding="14,10" BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1">
+            <Border Padding="14,10" BorderBrush="{DynamicResource GlassPanelBorder}" BorderThickness="0,0,0,1">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
                         <ui:IconBox Key="{Binding IconKey}" Size="14" VerticalAlignment="Center"
@@ -93,7 +93,7 @@
         <!-- 参数表单的行样式：除第一行外，行底部画一条分隔线。 -->
         <Style x:Key="FieldRow" TargetType="Border">
             <Setter Property="Padding" Value="0,9,0,11"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource Divider}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource GlassPanelBorder}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
             <Style.Triggers>
                 <DataTrigger Value="0">
@@ -202,7 +202,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="{Binding Label}" Style="{StaticResource FieldLabel}"/>
-                    <Button Grid.Column="1" Style="{StaticResource BtnSecondary}"
+                    <Button Grid.Column="1" Style="{StaticResource BtnGlass}"
                             HorizontalAlignment="Left" Command="{Binding PickCommand}">
                         <StackPanel Orientation="Horizontal">
                             <ui:IconBox Key="folder" Size="15" Margin="0,0,7,0"/>
@@ -244,31 +244,47 @@
         <KeyBinding Key="D7" Modifiers="Control" Command="{Binding GoToStageCommand}" CommandParameter="restore"/>
     </Window.InputBindings>
 
-    <Border x:Name="RootBorder" Background="{DynamicResource Background}">
+    <Border x:Name="RootBorder" Background="{DynamicResource Background}" ClipToBounds="True">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="56"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
+            <!-- 背景照片：轻微模糊 + 压一层，玻璃面板上的文字才读得清 -->
+            <Grid Grid.RowSpan="2" ClipToBounds="True">
+                <Image Source="pack://application:,,,/Assets/background.jpg"
+                       Stretch="UniformToFill"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Effect>
+                        <BlurEffect Radius="6" KernelType="Gaussian"/>
+                    </Image.Effect>
+                </Image>
+            </Grid>
+            <Rectangle Grid.RowSpan="2" Fill="{DynamicResource Scrim}"/>
+
             <!-- ══════════ 顶栏 ══════════ -->
-            <Border Grid.Row="0" Background="{DynamicResource Surface}"
-                    BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,0,1">
+            <Border Grid.Row="0" Background="{DynamicResource GlassPanel}"
+                    BorderBrush="{DynamicResource GlassPanelBorder}" BorderThickness="0,0,0,1">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="172"/>
+                        <ColumnDefinition Width="190"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center"
                                 Margin="14,0,0,0">
-                        <Border Width="28" Height="28" Background="{DynamicResource BrandPrimary}"
-                                CornerRadius="{StaticResource RadiusControl}">
-                            <ui:IconBox Key="shield" Size="16" Foreground="#FFFFFF"/>
-                        </Border>
+                        <Rectangle Width="27" Height="23" VerticalAlignment="Center"
+                                   ToolTip="OPPO 解锁工具箱"
+                                   Fill="{DynamicResource TextPrimary}">
+                            <Rectangle.OpacityMask>
+                                <ImageBrush ImageSource="pack://application:,,,/Assets/mark.png"
+                                            Stretch="Uniform"/>
+                            </Rectangle.OpacityMask>
+                        </Rectangle>
                         <TextBlock Text="OPPO 解锁工具箱" FontSize="{StaticResource FontSub}"
-                                   FontWeight="Bold" Margin="9,0,0,0" VerticalAlignment="Center"
+                                   FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextPrimary}"/>
                     </StackPanel>
 
@@ -338,7 +354,7 @@
                         </Button>
 
                         <Border Width="1" Height="20" Margin="8,0"
-                                Background="{DynamicResource Divider}"/>
+                                Background="{DynamicResource GlassPanelBorder}"/>
 
                         <Button Style="{StaticResource WindowControlButton}" Click="OnMinimizeClick"
                                 AutomationProperties.Name="最小化"
@@ -362,17 +378,39 @@
             <!-- ══════════ 主体：左导航 / 中间内容 / 右栏 ══════════ -->
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="172"/>
+                    <ColumnDefinition Width="190"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="270"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- 左：解锁流程 -->
-                <Border Grid.Column="0" Background="{DynamicResource Surface}"
-                        BorderBrush="{DynamicResource Divider}" BorderThickness="0,0,1,0">
-                    <DockPanel Margin="10,10,10,12">
-                        <TextBlock DockPanel.Dock="Top" Text="解锁流程" Style="{StaticResource SectionLabel}"
-                                   Margin="8,0,0,8"/>
+                <Border Grid.Column="0" Background="{DynamicResource GlassPanel}"
+                        BorderBrush="{DynamicResource GlassPanelBorder}" BorderThickness="0,0,1,0">
+                    <DockPanel Margin="10,14,10,14">
+                        <!-- 标题行：左边小标题，右边当前进度 -->
+                        <Grid DockPanel.Dock="Top" Margin="10,0,10,0">
+                            <TextBlock Text="解锁流程" Style="{StaticResource SectionLabel}"/>
+                            <TextBlock Text="{Binding Stage.StageProgress}" HorizontalAlignment="Right"
+                                       FontSize="{StaticResource FontSmall}"
+                                       Foreground="{DynamicResource TextTertiary}"/>
+                        </Grid>
+                        <Border DockPanel.Dock="Top" Height="1" Margin="10,11,10,14"
+                                Background="{DynamicResource GlassPanelBorder}"/>
+
+                        <!-- 底部：整轮进度，顺便把下面的空档收住 -->
+                        <Border DockPanel.Dock="Bottom" Style="{StaticResource GlassCard}"
+                                Padding="12,11" Margin="6,16,6,0">
+                            <StackPanel>
+                                <TextBlock Text="本次进度" Style="{StaticResource SectionLabel}"/>
+                                <TextBlock Text="{Binding ProgressSummary}" Margin="0,7,0,0"
+                                           FontSize="{StaticResource FontSub}" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextPrimary}"/>
+                                <ProgressBar Style="{StaticResource AppProgress}" Height="6"
+                                             Margin="0,9,0,0" Minimum="0" Maximum="100"
+                                             Value="{Binding ProgressPercent, Mode=OneWay}"/>
+                            </StackPanel>
+                        </Border>
+
                         <ListBox x:Name="StageRail" ItemsSource="{Binding Rail}"
                                  SelectedItem="{Binding SelectedRail, Mode=TwoWay}"
                                  ItemContainerStyle="{StaticResource NavItem}"
@@ -382,7 +420,7 @@
                                  VirtualizingPanel.ScrollUnit="Pixel">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="10,0,8,0">
+                                    <Grid Margin="12,0,10,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
@@ -392,7 +430,7 @@
                                                     VerticalAlignment="Center"
                                                     Foreground="{DynamicResource TextTertiary}"/>
                                         <TextBlock x:Name="NavLabel" Grid.Column="1" Text="{Binding Title}"
-                                                   FontSize="{StaticResource FontSub}" Margin="10,0,0,0"
+                                                   FontSize="{StaticResource FontSub}" Margin="11,0,0,0"
                                                    VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
                                         <TextBlock x:Name="NavGlyph" Grid.Column="2" Text="{Binding Glyph}"
@@ -438,7 +476,7 @@
                                   Padding="20,16,20,10">
                         <StackPanel>
                             <!-- 阶段卡 -->
-                            <Border Style="{StaticResource Card}">
+                            <Border Style="{StaticResource GlassCard}">
                                 <StackPanel Margin="20,18,20,18">
                                     <StackPanel Orientation="Horizontal">
                                         <Border Style="{StaticResource ChipBrand}">
@@ -493,7 +531,7 @@
                                                 <TextBlock Text="{Binding Stage.RunLabel}"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Style="{StaticResource BtnSecondary}" Margin="8,0,0,0"
+                                        <Button Style="{StaticResource BtnGlass}" Margin="8,0,0,0"
                                                 Command="{Binding StopCommand}"
                                                 AutomationProperties.Name="停止">
                                             <StackPanel Orientation="Horizontal">
@@ -501,7 +539,7 @@
                                                 <TextBlock Text="停止"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Style="{StaticResource BtnSecondary}" Margin="8,0,0,0"
+                                        <Button Style="{StaticResource BtnGlass}" Margin="8,0,0,0"
                                                 Command="{Binding CopyCommand}"
                                                 AutomationProperties.Name="复制命令">
                                             <StackPanel Orientation="Horizontal">
@@ -530,7 +568,7 @@
                             </Border>
 
                             <!-- 参数卡 -->
-                            <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                            <Border Style="{StaticResource GlassCard}" Margin="0,12,0,0">
                                 <StackPanel>
                                     <Border Style="{StaticResource CardHeader}">
                                         <TextBlock Text="参数" FontSize="{StaticResource FontSub}"
@@ -559,7 +597,7 @@
                                   ResizeDirection="Rows" Cursor="SizeNS"/>
 
                     <!-- 实时输出 -->
-                    <Border Grid.Row="2" Style="{StaticResource Card}" Margin="20,0,20,16">
+                    <Border Grid.Row="2" Style="{StaticResource GlassCard}" Margin="20,0,20,16">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -636,11 +674,11 @@
                 </Grid>
 
                 <!-- 右：设备环境 + 会话 -->
-                <Border Grid.Column="2" Background="{DynamicResource Surface}"
-                        BorderBrush="{DynamicResource Divider}" BorderThickness="1,0,0,0">
+                <Border Grid.Column="2" Background="{DynamicResource GlassPanel}"
+                        BorderBrush="{DynamicResource GlassPanelBorder}" BorderThickness="1,0,0,0">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,12,12,14">
                         <StackPanel>
-                            <Border Style="{StaticResource Card}">
+                            <Border Style="{StaticResource GlassCard}">
                                 <StackPanel>
                                     <Border Style="{StaticResource CardHeader}" Padding="14,11,14,9">
                                         <TextBlock Text="设备环境" FontSize="{StaticResource FontSub}"
@@ -652,7 +690,7 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                            <Border Style="{StaticResource GlassCard}" Margin="0,12,0,0">
                                 <StackPanel>
                                     <Border Style="{StaticResource CardHeader}" Padding="14,11,14,9">
                                         <TextBlock Text="会话" FontSize="{StaticResource FontSub}"

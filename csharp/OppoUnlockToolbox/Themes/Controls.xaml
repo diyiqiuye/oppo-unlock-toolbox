@@ -137,9 +137,18 @@
         <Setter Property="SnapsToDevicePixels" Value="True"/>
     </Style>
 
+    <!-- 主窗口里的卡片：半透明，背景照片能透上来；对话框继续用不透明的 Card -->
+    <Style x:Key="GlassCard" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource GlassPanelStrong}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource GlassPanelBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{StaticResource RadiusCard}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
     <Style x:Key="CardHeader" TargetType="Border">
         <Setter Property="Padding" Value="16,13,16,11"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource Divider}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource GlassPanelBorder}"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
     </Style>
 
@@ -243,11 +252,11 @@
         <Setter Property="FontWeight" Value="Normal"/>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource SurfaceHover}"/>
+                <Setter Property="Background" Value="{DynamicResource GlassNavHover}"/>
                 <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource SurfaceActive}"/>
+                <Setter Property="Background" Value="{DynamicResource GlassNavSelected}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -274,11 +283,23 @@
         <Setter Property="FontWeight" Value="Normal"/>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource SurfaceHover}"/>
+                <Setter Property="Background" Value="{DynamicResource GlassNavHover}"/>
                 <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource SurfaceActive}"/>
+                <Setter Property="Background" Value="{DynamicResource GlassNavSelected}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 玻璃上的次级按钮：底与描边都半透明，压在照片上不出现实心灰块 -->
+    <Style x:Key="BtnGlass" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+        <Setter Property="Background" Value="{DynamicResource GlassNavFill}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource GlassBorder}"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource GlassNavHover}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimary}"/>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -314,8 +335,8 @@
     <!-- ══════════════ 顶栏状态胶囊（对应参考的搜索框） ══════════════ -->
 
     <Style x:Key="SearchPill" TargetType="Button" BasedOn="{StaticResource BtnBase}">
-        <Setter Property="Background" Value="{DynamicResource BackgroundSecondary}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+        <Setter Property="Background" Value="{DynamicResource GlassNavFill}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource GlassBorder}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextTertiary}"/>
         <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Height" Value="36"/>
@@ -335,8 +356,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource SurfaceHover}"/>
-                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource BrandBorder}"/>
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource GlassNavHover}"/>
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource BrandPrimary}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -356,8 +377,8 @@
     <!-- ══════════════ 侧栏导航项 ══════════════ -->
 
     <Style x:Key="NavItem" TargetType="ListBoxItem">
-        <Setter Property="Height" Value="40"/>
-        <Setter Property="Margin" Value="0,1"/>
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="Margin" Value="0,3"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
         <Setter Property="FontFamily" Value="{StaticResource FontSans}"/>
@@ -366,16 +387,20 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Root" CornerRadius="{StaticResource RadiusControl}"
-                            Background="Transparent" SnapsToDevicePixels="True">
+                    <!-- 玻璃胶囊：圆角取一半高度，描边比底色亮一点才像玻璃边 -->
+                    <Border x:Name="Root" CornerRadius="22"
+                            Background="{DynamicResource GlassNavFill}"
+                            BorderBrush="{DynamicResource GlassBorder}"
+                            BorderThickness="1" SnapsToDevicePixels="True">
                         <ContentPresenter VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource SurfaceHover}"/>
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource GlassNavHover}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource BrandSoft}"/>
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource GlassNavSelected}"/>
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource BrandPrimary}"/>
                             <Setter Property="Foreground" Value="{DynamicResource BrandPrimary}"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                         </Trigger>
