@@ -1,7 +1,7 @@
 
 #define MyAppName "OPPO 解锁工具箱"
 #define MyAppNameEn "OPPOUnlockToolbox"
-#define MyAppVersion "0.2.1"
+#define MyAppVersion "0.3"
 #define MyAppPublisher "diyiqiuye"
 #define MyAppExeName "OPPO解锁工具箱.exe"
 #define MyAppUrl "https://github.com/diyiqiuye/fx5p-resources"
@@ -32,6 +32,9 @@ Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 
 [Files]
 Source: "..\..\dist-cs\OPPO解锁工具箱\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; net48 是依赖框架发布，这几个依赖 dll 和 exe.config 必须跟着 exe 一起装
+Source: "..\..\dist-cs\OPPO解锁工具箱\*.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "..\..\dist-cs\OPPO解锁工具箱\*.config"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\..\dist-cs\OPPO解锁工具箱\resources.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\dist-cs\OPPO解锁工具箱\resources\*"; DestDir: "{app}\resources"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\dist-cs\OPPO解锁工具箱\tools\platform-tools\*"; DestDir: "{app}\tools\platform-tools"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -52,8 +55,29 @@ Filename: "{cmd}"; Parameters: "/C taskkill /F /IM ""{#MyAppExeName}"" /IM adb.e
 [UninstallDelete]
 
 [Code]
-function InitializeSetup(): Boolean;
+// .NET Framework 4.8 是 Win10 1903+ / Win11 的自带组件；老系统上先提示去装，别让用户
+// 双击之后收到一个看不懂的运行时错误。Release >= 528040 即 4.8 及以上。
+function IsDotNet48OrLater(): Boolean;
+var
+  Release: Cardinal;
 begin
+  Result := RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full',
+                               'Release', Release) and (Release >= 528040);
+end;
+
+function InitializeSetup(): Boolean;
+var
+  ErrorCode: Integer;
+begin
+  if not IsDotNet48OrLater() then
+  begin
+    if MsgBox('这个工具箱需要 .NET Framework 4.8，Windows 10 1903 以上和 Windows 11 都自带。'
+              + #13#10 + #13#10 + '要现在打开微软的下载页吗？', mbConfirmation, MB_YESNO) = IDYES then
+      ShellExec('open', 'https://dotnet.microsoft.com/download/dotnet-framework/net48',
+                '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
+    Result := False;
+    Exit;
+  end;
   Result := True;
 end;
 

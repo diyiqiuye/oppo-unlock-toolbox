@@ -4,8 +4,11 @@
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <ResourceDictionary>
+            <!-- 顺序不能动：Tokens(静态令牌) → 主题配色(运行时可换，索引 1) → 控件样式 -->
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Ui/Themes/Theme.xaml"/>
+                <ResourceDictionary Source="Themes/Tokens.xaml"/>
+                <ResourceDictionary Source="Themes/Light.xaml"/>
+                <ResourceDictionary Source="Themes/Controls.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

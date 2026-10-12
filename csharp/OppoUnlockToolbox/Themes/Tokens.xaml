@@ -1,0 +1,33 @@
+<!-- 与主题无关的基础令牌：字体、字号、圆角。复刻自参考项目的 tokens.css。 -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <FontFamily x:Key="FontSans">Microsoft YaHei UI, Microsoft YaHei, PingFang SC, Segoe UI</FontFamily>
+    <FontFamily x:Key="FontMono">Consolas, Monaco, Courier New</FontFamily>
+
+    <sys:Double x:Key="FontTitleLg">24</sys:Double>
+    <sys:Double x:Key="FontTitleMd">19</sys:Double>
+    <sys:Double x:Key="FontTitleSm">17</sys:Double>
+    <sys:Double x:Key="FontBody">15.5</sys:Double>
+    <sys:Double x:Key="FontSub">14.5</sys:Double>
+    <sys:Double x:Key="FontCaption">13</sys:Double>
+    <sys:Double x:Key="FontSmall">12</sys:Double>
+    <sys:Double x:Key="FontTiny">11</sys:Double>
+
+    <CornerRadius x:Key="RadiusXs">4</CornerRadius>
+    <CornerRadius x:Key="RadiusSm">6</CornerRadius>
+    <CornerRadius x:Key="RadiusControl">8</CornerRadius>
+    <CornerRadius x:Key="RadiusCard">12</CornerRadius>
+    <CornerRadius x:Key="RadiusDialog">14</CornerRadius>
+
+    <!-- 注意：WPF 的 CornerRadius 不会像 CSS 那样自动收敛，
+         写超过元素一半的值会画成两端收尖的透镜形，这里一律给具体数值。 -->
+
+    <!-- 外壳尺寸（复刻参考：侧栏 150 / 右栏 270 / 顶栏 56） -->
+    <sys:Double x:Key="SidebarWidth">150</sys:Double>
+    <sys:Double x:Key="RightSidebarWidth">270</sys:Double>
+    <sys:Double x:Key="TopBarHeight">56</sys:Double>
+    <sys:Double x:Key="WindowControlWidth">36</sys:Double>
+
+</ResourceDictionary>

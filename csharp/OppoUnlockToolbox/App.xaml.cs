@@ -1,19 +1,21 @@
-
 using System.IO;
 using System.Text;
 using System.Windows;
-using OppoUnlockToolbox.Core;
-using OppoUnlockToolbox.Ui;
+using OppoUnlockToolbox.ViewModels;
+using OppoUnlockToolbox.Views;
 
 namespace OppoUnlockToolbox;
 
+/// <summary>组装根：这里把服务、ViewModel、主窗口接起来。</summary>
 public partial class App : Application
 {
     public static bool SelfTestMode { get; private set; }
 
+    public MainViewModel? ViewModel { get; private set; }
+
     protected override void OnStartup(StartupEventArgs e)
     {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        // net48 自带全部代码页，不需要 .NET Core 那套 CodePagesEncodingProvider。
         SelfTestMode = e.Args.Contains("--selftest");
 
         DispatcherUnhandledException += (_, args) =>
@@ -29,12 +31,21 @@ public partial class App : Application
 
         base.OnStartup(e);
 
-        var window = new MainWindow();
+        var settings = UserSettings.Load();
+        var theme = new ThemeService(settings);
+        theme.Apply();
+
+        var dialogs = new DialogService();
+        var viewModel = new MainViewModel(dialogs, theme, SelfTestMode);
+        ViewModel = viewModel;
+
+        var window = new MainWindow { DataContext = viewModel };
+        dialogs.Owner = window;
         MainWindow = window;
         window.Show();
 
         if (SelfTestMode)
-            SelfTest.Run(window);
+            SelfTest.Run(window, viewModel);
     }
 
     private static void ReportCrash(Exception exc)
@@ -42,8 +53,7 @@ public partial class App : Application
         var text = exc.ToString();
         try
         {
-            var main = Application.Current?.MainWindow as MainWindow;
-            main?.Dispatcher.Invoke(() => main.AppendLog("err", "界面异常：" + exc.Message));
+            (Current as App)?.ViewModel?.AppendLog("err", "界面异常：" + exc.Message);
         }
         catch
         {
@@ -51,7 +61,7 @@ public partial class App : Application
         }
         try
         {
-            File.AppendAllText(Path.Combine(AppConfig.LogDir(), "ui_error.log"),
+            File.AppendAllText(Path.Combine(AppPaths.LogDir(), "ui_error.log"),
                 text + Environment.NewLine, Encoding.UTF8);
         }
         catch
@@ -61,9 +71,10 @@ public partial class App : Application
     }
 }
 
+/// <summary>`--selftest` 时跑的冒烟检查：把关键装配点写进 selftest.txt 供构建脚本判断。</summary>
 internal static class SelfTest
 {
-    public static void Run(MainWindow window)
+    public static void Run(MainWindow window, MainViewModel viewModel)
     {
         window.Dispatcher.BeginInvoke(async () =>
         {
@@ -72,16 +83,17 @@ internal static class SelfTest
             try
             {
                 report.Add($"OK title={window.Title}");
-                report.Add($"stages={Workflow.Stages.Length}");
+                report.Add($"stages={StageRegistry.Stages.Length}");
                 report.Add($"base=#{((System.Windows.Media.SolidColorBrush)window.Background).Color.ToString().Substring(3)}");
-                var toolsDir = Path.Combine(AppConfig.ResourceDir(), "tools", "platform-tools");
+                var toolsDir = Path.Combine(AppPaths.ResourceDir(), "tools", "platform-tools");
                 report.Add($"bundled_tools={(Directory.Exists(toolsDir) ? string.Join(",", Directory.GetFiles(toolsDir).Select(Path.GetFileName)) : "缺失")}");
-                report.Add($"adb_source={AppConfig.ToolSource("adb")}");
-                report.Add($"adb_path={AppConfig.FindTool("adb") ?? ""}");
-                report.Add($"adb_version={AppConfig.ToolVersion("adb")}");
-                report.Add($"fastboot_source={AppConfig.ToolSource("fastboot")}");
-                report.Add($"work_dir={AppConfig.AppDir()}");
-                report.Add($"device_tiles=4");
+                report.Add($"adb_source={ToolLocator.ToolSource("adb")}");
+                report.Add($"adb_path={ToolLocator.FindTool("adb") ?? ""}");
+                report.Add($"adb_version={ToolLocator.ToolVersion("adb")}");
+                report.Add($"fastboot_source={ToolLocator.ToolSource("fastboot")}");
+                report.Add($"work_dir={AppPaths.AppDir()}");
+                report.Add($"device_tiles={viewModel.Device.Tiles.Count}");
+                report.Add($"rail_items={viewModel.Rail.Count}");
                 report.Add($"progress=determinate");
             }
             catch (Exception exc)
@@ -93,7 +105,7 @@ internal static class SelfTest
             {
                 try
                 {
-                    File.WriteAllLines(Path.Combine(AppConfig.AppDir(), "selftest.txt"), report);
+                    File.WriteAllLines(Path.Combine(AppPaths.AppDir(), "selftest.txt"), report);
                 }
                 catch
                 {
