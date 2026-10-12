@@ -1,0 +1,4 @@
+<Weavers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="FodyWeavers.xsd">
+  <!-- 把依赖程序集作为资源嵌进 exe，运行时由 Costura 的 AssemblyResolve 兜住 -->
+  <Costura />
+</Weavers>

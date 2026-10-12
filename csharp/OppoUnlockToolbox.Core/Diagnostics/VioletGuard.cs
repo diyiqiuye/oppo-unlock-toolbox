@@ -24,12 +24,13 @@ public static class VioletGuard
         if (string.IsNullOrEmpty(processName))
             return false;
 
+        var name = processName!;
         foreach (var known in KnownNames)
-            if (processName.Equals(known, StringComparison.OrdinalIgnoreCase))
+            if (name.Equals(known, StringComparison.OrdinalIgnoreCase))
                 return true;
 
         foreach (var fragment in Fragments)
-            if (processName.Contains(fragment, StringComparison.OrdinalIgnoreCase))
+            if (name.Contains(fragment, StringComparison.OrdinalIgnoreCase))
                 return true;
 
         return false;

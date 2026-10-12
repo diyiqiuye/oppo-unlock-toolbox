@@ -40,8 +40,8 @@ if (Test-Path $selftest) {
 }
 
 if ($Publish) {
-    # net48 是「依赖框架」发布：.NET Framework 4.8 由系统自带，产物就是一个小文件夹
-    # （exe + Core.dll + System.Text.Json 那几个依赖），总量约 2 MB，没有单文件可打。
+    # net48 是「依赖框架」发布：.NET Framework 4.8 由系统自带，依赖又被 Costura 嵌进了 exe，
+    # 所以这里拷贝出去的就是一个约 1.2 MB 的单文件 exe。
     $cnName = "OPPO" + [char]0x89E3 + [char]0x9501 + [char]0x5DE5 + [char]0x5177 + [char]0x7BB1
     $out = Join-Path $root (Join-Path "dist-cs" $cnName)
     $bin = Join-Path $csharp "OppoUnlockToolbox\bin\Release\net48"
@@ -49,9 +49,11 @@ if ($Publish) {
 
     # 不动目录里已有的 tools\ 和 resources\（安装包要用），只覆盖程序本体
     if (-not (Test-Path $out)) { New-Item -ItemType Directory -Path $out -Force | Out-Null }
-    Copy-Item (Join-Path $bin "*.dll") $out -Force
     Copy-Item (Join-Path $bin "OppoUnlockToolbox.exe") $out -Force
     Copy-Item (Join-Path $bin "OppoUnlockToolbox.exe.config") $out -Force
+    # 依赖已被 Costura 嵌进 exe，正常情况下这里没有 dll；留着是为了将来关掉 Costura 也不炸
+    $extraDlls = Get-ChildItem -Path (Join-Path $bin "*.dll") -ErrorAction SilentlyContinue
+    if ($extraDlls) { $extraDlls | ForEach-Object { Copy-Item $_.FullName $out -Force } }
 
     $exeName = "OPPO" + [char]0x89E3 + [char]0x9501 + [char]0x5DE5 + [char]0x5177 + [char]0x7BB1 + ".exe"
     if (Test-Path (Join-Path $out $exeName)) { Remove-Item (Join-Path $out $exeName) -Force }

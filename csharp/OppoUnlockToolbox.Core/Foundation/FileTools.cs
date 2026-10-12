@@ -80,6 +80,8 @@ public static class FileTools
 
     public static string FmtMd5(string? md5, int width = 8)
     {
-        return string.IsNullOrEmpty(md5) ? "—" : md5.Substring(0, Math.Min(width, md5.Length));
+        if (string.IsNullOrEmpty(md5))
+            return "—";
+        return md5!.Substring(0, Math.Min(width, md5.Length));
     }
 }

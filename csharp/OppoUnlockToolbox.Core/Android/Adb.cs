@@ -29,7 +29,7 @@ public sealed class Adb
                 $"未找到 {name}。请把 platform-tools 放到工具箱的 tools/platform-tools 目录，" +
                 "或安装 Android SDK 后重试。");
         }
-        return path;
+        return path!;
     }
 
     public List<object> AdbArgv(params object[] args)

@@ -23,8 +23,8 @@ public static class Net48Compat
         return buffer;
     }
 
-    public static bool Contains(this string text, string value, StringComparison comparison) =>
-        text.IndexOf(value, comparison) >= 0;
+    public static bool Contains(this string? text, string value, StringComparison comparison) =>
+        text is not null && text.IndexOf(value, comparison) >= 0;
 
     public static TValue? GetValueOrDefault<TKey, TValue>(
         this IReadOnlyDictionary<TKey, TValue> dictionary, TKey key) =>

@@ -13,8 +13,8 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Product>OPPO 解锁工具箱</Product>
     <Company></Company>
-    <Version>0.2.1</Version>
-    <FileVersion>0.2.1</FileVersion>
+    <Version>0.3</Version>
+    <FileVersion>0.3</FileVersion>
     <AssemblyTitle>OPPO 解锁工具箱</AssemblyTitle>
     <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
     <DebugType>none</DebugType>
@@ -39,6 +39,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OppoUnlockToolbox.Core\OppoUnlockToolbox.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- net48 没有单文件发布，用 Costura 把 Core.dll 和 System.Text.Json 那串依赖嵌进 exe，
+         发布产物因此仍是单个 exe（配置见 FodyWeavers.xml）。 -->
+    <PackageReference Include="Costura.Fody" Version="5.7.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

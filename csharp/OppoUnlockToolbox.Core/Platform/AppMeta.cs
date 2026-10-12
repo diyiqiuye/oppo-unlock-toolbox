@@ -6,7 +6,7 @@ public static class AppMeta
     public const string AppName = "OPPO 解锁工具箱";
     public const string AppShort = "OPPO 解锁工具箱";
     public const string AppTagline = "Find X5 Pro / Find X6 Pro · BL 解锁 + 临时 root · 七阶段工作流";
-    public const string AppVersion = "0.2.1";
+    public const string AppVersion = "0.3";
     public const string Credit = "临时 root 链路移植自 diyiqiuye/CVE-2025-21479-FX5P (GPL-3.0)；" +
                                  "DFRoot 通道基于 diabl0w/DFRoot；工作流整理自社区解锁教程";
 
