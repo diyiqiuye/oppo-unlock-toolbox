@@ -1,0 +1,166 @@
+<Window x:Class="OppoUnlockToolbox.Views.DownloadWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:OppoUnlockToolbox.Controls"
+        Title="资源下载" Width="640" SizeToContent="Height" MaxHeight="800"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        FontFamily="{StaticResource FontSans}"
+        TextElement.Foreground="{DynamicResource TextPrimary}"
+        UseLayoutRounding="True"
+        Icon="pack://application:,,,/Assets/app.ico">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <CollectionViewSource x:Key="GroupedRows" Source="{Binding Rows}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="Group"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
+    </Window.Resources>
+
+    <Border Style="{StaticResource DialogCard}" Margin="18">
+        <StackPanel Margin="22,20,22,18">
+            <StackPanel Orientation="Horizontal" MouseLeftButtonDown="OnDragArea">
+                <Border Width="34" Height="34" CornerRadius="{StaticResource RadiusControl}"
+                        Background="{DynamicResource BrandSoft}">
+                    <ui:IconBox Key="download" Size="18" Foreground="{DynamicResource BrandPrimary}"/>
+                </Border>
+                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="下载资源" FontSize="{StaticResource FontTitleSm}" FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimary}"/>
+                    <TextBlock Text="下载完成会自动识别文件并填进对应阶段的参数，不用再手动选择。"
+                               FontSize="{StaticResource FontSmall}"
+                               Foreground="{DynamicResource TextTertiary}" Margin="0,3,0,0"/>
+                </StackPanel>
+            </StackPanel>
+
+            <Border Style="{StaticResource Card}" Padding="12,10" Margin="0,16,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="保存到" FontSize="{StaticResource FontSmall}"
+                               Foreground="{DynamicResource TextTertiary}"
+                               VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Grid.Column="1" Text="{Binding TargetDir}"
+                               FontSize="{StaticResource FontSmall}"
+                               Foreground="{DynamicResource TextSecondary}"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    <Button Grid.Column="2" Style="{StaticResource BtnSecondary}" Height="28"
+                            Margin="10,0,0,0" Content="更换目录" FontSize="{StaticResource FontSmall}"
+                            Command="{Binding BrowseCommand}"/>
+                    <Button Grid.Column="3" Style="{StaticResource BtnSecondary}" Height="28"
+                            Margin="8,0,0,0" Content="编辑直链" FontSize="{StaticResource FontSmall}"
+                            Command="{Binding EditConfigCommand}"/>
+                </Grid>
+            </Border>
+
+            <ScrollViewer Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+                <ListBox ItemsSource="{Binding Source={StaticResource GroupedRows}}"
+                         Background="Transparent" BorderThickness="0" Padding="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                         Focusable="False">
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="GroupChip" Style="{StaticResource ChipBrand}"
+                                            Margin="0,12,0,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ui:IconBox Key="chip" Size="12" Margin="0,0,6,0"
+                                                        Foreground="{DynamicResource BrandPrimary}"/>
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="{StaticResource FontSmall}"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrandPrimary}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Name}" Value="">
+                                            <Setter TargetName="GroupChip" Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="12,10" Margin="0,0,0,6"
+                                    Background="{DynamicResource BackgroundSecondary}"
+                                    CornerRadius="{StaticResource RadiusCard}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontSize="{StaticResource FontCaption}"
+                                                   Foreground="{DynamicResource TextPrimary}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock x:Name="RowStatus" Text="{Binding Status}"
+                                                   FontSize="{StaticResource FontSmall}"
+                                                   Foreground="{DynamicResource TextTertiary}"
+                                                   Margin="0,3,0,0"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <ProgressBar Style="{StaticResource AppProgress}" Height="6"
+                                                     Margin="0,8,0,0" Minimum="0" Maximum="100"
+                                                     Value="{Binding ProgressValue, Mode=OneWay}"
+                                                     IsIndeterminate="{Binding ProgressIndeterminate}"
+                                                     Visibility="{Binding ProgressVisible,
+                                                         Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Style="{StaticResource BtnSecondary}"
+                                            Content="{Binding ButtonText}" MinWidth="76" Height="30"
+                                            FontSize="{StaticResource FontSmall}"
+                                            VerticalAlignment="Center" Margin="12,0,0,0"
+                                            Command="{Binding ButtonCommand}"/>
+                                </Grid>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding StatusTone}" Value="ok">
+                                    <Setter TargetName="RowStatus" Property="Foreground"
+                                            Value="{DynamicResource Success}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding StatusTone}" Value="warn">
+                                    <Setter TargetName="RowStatus" Property="Foreground"
+                                            Value="{DynamicResource Warning}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding StatusTone}" Value="danger">
+                                    <Setter TargetName="RowStatus" Property="Foreground"
+                                            Value="{DynamicResource Danger}"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="IsTabStop" Value="False"/>
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+            </ScrollViewer>
+
+            <Button Style="{StaticResource BtnPrimary}" HorizontalAlignment="Right"
+                    Margin="0,18,0,0" MinWidth="96" Content="关闭"
+                    Command="{Binding CloseCommand}"/>
+        </StackPanel>
+    </Border>
+</Window>

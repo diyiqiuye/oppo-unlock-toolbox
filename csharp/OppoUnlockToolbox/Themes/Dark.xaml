@@ -1,0 +1,56 @@
+<!-- 深色主题配色，键名与 Light.xaml 一一对应（参考项目 themes.css 的 [data-theme="dark"]）。 -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="Background" Color="#0E1012"/>
+    <SolidColorBrush x:Key="BackgroundSecondary" Color="#14171A"/>
+
+    <SolidColorBrush x:Key="Surface" Color="#181B1E"/>
+    <SolidColorBrush x:Key="SurfaceHover" Color="#212429"/>
+    <SolidColorBrush x:Key="SurfaceActive" Color="#292D33"/>
+    <SolidColorBrush x:Key="SurfaceElevated" Color="#212429"/>
+
+    <SolidColorBrush x:Key="TextPrimary" Color="#F4F5F6"/>
+    <SolidColorBrush x:Key="TextSecondary" Color="#B2B6BC"/>
+    <SolidColorBrush x:Key="TextTertiary" Color="#747A82"/>
+    <SolidColorBrush x:Key="TextDisabled" Color="#545960"/>
+    <SolidColorBrush x:Key="TextInverse" Color="#FFFFFF"/>
+
+    <SolidColorBrush x:Key="Border" Color="#292C31"/>
+    <SolidColorBrush x:Key="BorderLight" Color="#222529"/>
+    <SolidColorBrush x:Key="Divider" Color="#23262A"/>
+
+    <SolidColorBrush x:Key="BrandPrimary" Color="#22C875"/>
+    <SolidColorBrush x:Key="BrandHover" Color="#32D984"/>
+    <SolidColorBrush x:Key="BrandActive" Color="#16AF65"/>
+    <SolidColorBrush x:Key="BrandSoft" Color="#1A352B"/>
+    <SolidColorBrush x:Key="BrandSoftHover" Color="#234534"/>
+    <SolidColorBrush x:Key="BrandBorder" Color="#2E5C45"/>
+
+    <SolidColorBrush x:Key="Success" Color="#22C875"/>
+    <SolidColorBrush x:Key="SuccessSoft" Color="#12291E"/>
+    <SolidColorBrush x:Key="Warning" Color="#F5A524"/>
+    <SolidColorBrush x:Key="WarningSoft" Color="#2A2312"/>
+    <SolidColorBrush x:Key="Danger" Color="#F04444"/>
+    <SolidColorBrush x:Key="DangerHover" Color="#D93A3A"/>
+    <SolidColorBrush x:Key="DangerSoft" Color="#2C1A1A"/>
+    <SolidColorBrush x:Key="Info" Color="#4C93F5"/>
+    <SolidColorBrush x:Key="InfoSoft" Color="#16233A"/>
+
+    <SolidColorBrush x:Key="FieldDisabled" Color="#212429"/>
+    <SolidColorBrush x:Key="FocusRing" Color="#2E5C45"/>
+
+    <SolidColorBrush x:Key="ScrollThumb" Color="#29FFFFFF"/>
+    <SolidColorBrush x:Key="ScrollThumbHover" Color="#59FFFFFF"/>
+    <SolidColorBrush x:Key="WindowControlHover" Color="#14FFFFFF"/>
+    <SolidColorBrush x:Key="WindowControlActive" Color="#21FFFFFF"/>
+
+    <SolidColorBrush x:Key="LvlCmd" Color="#6BA5F0"/>
+    <SolidColorBrush x:Key="LvlOut" Color="#B2B6BC"/>
+    <SolidColorBrush x:Key="LvlInfo" Color="#F4F5F6"/>
+    <SolidColorBrush x:Key="LvlOk" Color="#22C875"/>
+    <SolidColorBrush x:Key="LvlWarn" Color="#F5A524"/>
+    <SolidColorBrush x:Key="LvlErr" Color="#F04444"/>
+    <SolidColorBrush x:Key="LvlNote" Color="#747A82"/>
+
+</ResourceDictionary>

@@ -1,0 +1,11 @@
+// 分层命名空间在这里统一引入；各文件不必再逐个 using。
+global using OppoUnlockToolbox.Core.Android;
+global using OppoUnlockToolbox.Core.Devices;
+global using OppoUnlockToolbox.Core.Diagnostics;
+global using OppoUnlockToolbox.Core.Downloads;
+global using OppoUnlockToolbox.Core.Foundation;
+global using OppoUnlockToolbox.Core.Platform;
+global using OppoUnlockToolbox.Core.State;
+global using OppoUnlockToolbox.Core.Workflow;
+global using OppoUnlockToolbox.Core.Workflow.Shared;
+global using OppoUnlockToolbox.Core.Workflow.Stages;
