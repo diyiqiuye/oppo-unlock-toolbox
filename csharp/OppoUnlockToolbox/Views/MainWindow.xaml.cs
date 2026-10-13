@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         Loaded += OnLoaded;
+        ContentRendered += OnContentRendered;
         Closed += OnClosed;
         StateChanged += (_, _) => UpdateMaximizeState();
     }
@@ -29,8 +30,19 @@ public partial class MainWindow : Window
         viewModel.ScrollTopRequested += () => RightScroll.ScrollToTop();
         viewModel.LogAppended += OnLogAppended;
         viewModel.Start();
-        viewModel.ShowFirstRunNoticeIfNeeded();
         UpdateMaximizeState();
+    }
+
+    /// <summary>
+    /// 首次运行的「使用须知」必须等到这里才弹。
+    /// 之前是在 Loaded 里同步 ShowDialog()，那时首帧还没画出来，模态循环又抢在渲染前面
+    /// 跑起来 —— 用户看到的就是主页面一片空白，非得把弹窗关掉才显出来。
+    /// ContentRendered 保证内容已经画完，这时再开模态循环就没这个问题。
+    /// </summary>
+    private void OnContentRendered(object? sender, EventArgs e)
+    {
+        ContentRendered -= OnContentRendered;
+        _viewModel?.ShowFirstRunNoticeIfNeeded();
     }
 
     private void OnLogAppended(LogRecord record)

@@ -32,11 +32,11 @@ Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 
 [Files]
 Source: "..\..\dist-cs\OPPO解锁工具箱\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-; net48 是依赖框架发布，这几个依赖 dll 和 exe.config 必须跟着 exe 一起装
+; 依赖已由 Costura 嵌进 exe，这里已经没有 dll 了；这条留着是给关掉 Costura 的场景兜底。
+; exe.config 必须跟着 exe 一起装，否则绑定重定向不生效。
 Source: "..\..\dist-cs\OPPO解锁工具箱\*.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\..\dist-cs\OPPO解锁工具箱\*.config"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\..\dist-cs\OPPO解锁工具箱\resources.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\..\dist-cs\OPPO解锁工具箱\resources\*"; DestDir: "{app}\resources"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\dist-cs\OPPO解锁工具箱\tools\platform-tools\*"; DestDir: "{app}\tools\platform-tools"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
